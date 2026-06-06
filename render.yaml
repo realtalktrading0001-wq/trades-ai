@@ -1,0 +1,30 @@
+# Render.com Blueprint — deploys TRADES AI as a single web service
+# (Express serves both the API and the built client over one HTTPS origin).
+#
+# Deploy: push this repo to GitHub → Render Dashboard → New + → Blueprint →
+# pick the repo. Then set the secret env vars (BOT_TOKEN, BOT_USERNAME,
+# POCKETOPTION_REF_URL) in the service's Environment tab.
+services:
+  - type: web
+    name: trades-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: BOT_TOKEN
+        sync: false            # paste your @BotFather token in the dashboard
+      - key: BOT_USERNAME
+        sync: false            # e.g. tradesai_bot (no @)
+      - key: POCKETOPTION_REF_URL
+        sync: false            # your real affiliate link
+      - key: SUPPORT_HANDLE
+        value: tradesai_support
+      - key: VERIFY_DELAY_SECONDS
+        value: "6"
+      - key: WEEKLY_PRIZE_POOL
+        value: "400"

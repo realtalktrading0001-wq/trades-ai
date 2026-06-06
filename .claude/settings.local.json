@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const {DatabaseSync}=require\\('node:sqlite'\\); const db=new DatabaseSync\\(':memory:'\\); db.exec\\('CREATE TABLE t\\(x\\)'\\); db.prepare\\('INSERT INTO t VALUES \\(?\\)'\\).run\\(5\\); console.log\\('ok', db.prepare\\('SELECT x FROM t'\\).get\\(\\)\\);\")",
+      "Bash(npm run *)",
+      "Bash(node -e ' *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }')",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }')",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 4000,5173 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess\")",
+      "Bash(node --import tsx src/index.ts)",
+      "Bash(curl -s http://localhost:4000/api/health)",
+      "Bash(kill %1)",
+      "Bash(node -e \"setTimeout\\(\\(\\)=>console.log\\('waited'\\),8000\\)\")",
+      "Bash(ls -la CLAUDE.md .cursorrules .github/copilot-instructions.md)",
+      "Bash(ls .cursor)",
+      "Bash(node --import tsx --watch src/index.ts)",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 4000,5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }')",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 4000,5173 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort,OwningProcess\")",
+      "Read(//c/Users/pc/Downloads/**)",
+      "Bash(where ffmpeg *)",
+      "Bash(ffmpeg -version)",
+      "Read(//c/ffmpeg/bin/**)",
+      "Bash(where winget *)",
+      "Bash(node -e \"console.log\\('BIN='+require\\('ffmpeg-static'\\)\\)\")",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }')",
+      "Bash(PORT=4100 node server/dist/index.js)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(grep -E \"\\\\.env$|node_modules|/dist/|\\\\.sqlite\")"
+    ]
+  }
+}

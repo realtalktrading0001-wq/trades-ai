@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --app-bg: radial-gradient(120% 75% at 50% 0%, #0b1730 0%, #071020 48%, #04120f 100%);
+  --app-fg: #f6f8fc;
+  --app-strong: #ffffff;
+  --app-muted: #9aa6b8;
+  --app-soft: #d7deec;
+  --card-bg: rgba(14, 25, 48, 0.76);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --panel-bg: rgba(10, 18, 34, 0.72);
+  --pill-bg: rgba(4, 9, 20, 0.9);
+  --nav-bg: rgba(7, 14, 28, 0.92);
+  --ring-track: rgba(48, 62, 84, 0.55);
+  --shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --app-bg: radial-gradient(120% 75% at 50% 8%, #f7fbff 0%, #e9f3ff 44%, #e8fbf7 100%);
+  --app-fg: #111827;
+  --app-strong: #0b1020;
+  --app-muted: #6b7280;
+  --app-soft: #4b5563;
+  --card-bg: rgba(249, 252, 255, 0.86);
+  --card-border: rgba(20, 34, 58, 0.08);
+  --panel-bg: rgba(247, 250, 255, 0.82);
+  --pill-bg: rgba(255, 255, 255, 0.92);
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --ring-track: rgba(215, 225, 238, 0.95);
+  --shadow-soft: 0 18px 45px rgba(55, 90, 130, 0.16);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  background-attachment: fixed;
+  color: var(--app-fg);
+  font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+[data-theme='light'] .text-slate-100,
+[data-theme='light'] .text-slate-200 {
+  color: var(--app-strong) !important;
+}
+
+[data-theme='light'] .text-slate-300,
+[data-theme='light'] .text-muted {
+  color: var(--app-muted) !important;
+}
+
+/* In light mode, headings/labels written as text-white sit on light cards.
+   Remap them to the strong text color, but only inside main content and never
+   on buttons (whose white labels sit on colored fills) — the top header and
+   bottom nav stay dark surfaces with white text. */
+[data-theme='light'] main :where(.text-white):not(button):not(button *) {
+  color: var(--app-strong) !important;
+}
+
+/* Hide scrollbars but keep scrolling */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+@layer components {
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-soft);
+    @apply rounded-2xl;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none;
+  }
+  .btn-primary {
+    @apply btn bg-electric text-white shadow-glow-blue hover:brightness-110;
+  }
+  .btn-cyan {
+    @apply btn bg-cyan text-midnight-deep font-bold shadow-glow-cyan hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply btn bg-white/[0.04] text-slate-200 border border-white/[0.08] hover:bg-white/[0.08];
+  }
+  .btn-charcoal {
+    @apply btn bg-[#1B2740] text-slate-200 border border-white/[0.06] hover:bg-[#22304d];
+  }
+  .input-dark {
+    background: var(--pill-bg);
+    border: 1px solid var(--card-border);
+    color: var(--app-strong);
+    @apply w-full rounded-xl px-4 py-3 placeholder:text-muted outline-none focus:border-electric focus:ring-2 focus:ring-electric/30;
+  }
+  .label-muted {
+    @apply text-xs font-medium uppercase tracking-wider text-muted;
+  }
+}

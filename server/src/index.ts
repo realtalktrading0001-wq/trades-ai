@@ -15,7 +15,7 @@ app.use(express.json());
 const PORT = Number(process.env.PORT) || 4000;
 const POCKETOPTION_REF_URL =
   process.env.POCKETOPTION_REF_URL ?? 'https://pocketoption.com/?ref=YOUR_REF_CODE';
-const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE ?? 'tradesai_support';
+const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE ?? 'Tradesaisupport';
 const WEEKLY_PRIZE_POOL = Number(process.env.WEEKLY_PRIZE_POOL) || 400;
 
 const CURRENCY_PAIRS = [

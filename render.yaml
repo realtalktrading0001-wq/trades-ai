@@ -23,7 +23,7 @@ services:
       - key: POCKETOPTION_REF_URL
         sync: false            # your real affiliate link
       - key: SUPPORT_HANDLE
-        value: tradesai_support
+        value: Tradesaisupport
       - key: VERIFY_DELAY_SECONDS
         value: "6"
       - key: WEEKLY_PRIZE_POOL

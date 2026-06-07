@@ -7,7 +7,6 @@ import ProfileScreen from './screens/ProfileScreen';
 import ReferralsScreen from './screens/ReferralsScreen';
 import AssistantScreen from './screens/AssistantScreen';
 import SupportScreen from './screens/SupportScreen';
-import { ChevronDown, CloseIcon } from './components/Icons';
 
 const ONBOARDED_KEY = 'signalai_onboarded';
 
@@ -44,23 +43,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="sticky top-0 z-30 bg-[#1b2635] text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
-        <div className="mx-auto flex h-[52px] max-w-md items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <CloseIcon className="h-5 w-5" />
-            <span className="text-[17px] font-extrabold tracking-[-0.01em]">TRADES AI</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <ChevronDown className="h-5 w-5" />
-            <span className="flex h-5 w-1 flex-col justify-center gap-1" aria-hidden="true">
-              <span className="h-1 w-1 rounded-full bg-white" />
-              <span className="h-1 w-1 rounded-full bg-white" />
-              <span className="h-1 w-1 rounded-full bg-white" />
-            </span>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto max-w-md px-4 py-3">
         {tab === 'signals' && <SignalsScreen />}
         {tab === 'profile' && <ProfileScreen />}

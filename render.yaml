@@ -19,7 +19,7 @@ services:
       - key: BOT_TOKEN
         sync: false            # paste your @BotFather token in the dashboard
       - key: BOT_USERNAME
-        sync: false            # e.g. tradesai_bot (no @)
+        value: tradesaipocketbot   # your bot @username, no @ (public, not a secret)
       - key: POCKETOPTION_REF_URL
         sync: false            # your real affiliate link
       - key: SUPPORT_HANDLE

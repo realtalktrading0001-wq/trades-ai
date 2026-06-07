@@ -1,6 +1,6 @@
 import { db, type UserRow, type StatsRow } from './db.js';
 
-const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesai_bot';
+const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
 
 /** Promote a verifying user to verified once the simulated delay has elapsed. */
 export function maybeVerify(user: UserRow): UserRow {
@@ -27,7 +27,9 @@ export function buildUserState(userRow: UserRow) {
     timezone: user.timezone,
     language: user.language,
     refCode: user.ref_code,
-    inviteLink: `https://t.me/${BOT_USERNAME}?start=ref_${user.ref_code}`,
+    // `startapp` opens the Mini App directly (and passes start_param) so the
+    // referral is credited; `start` would only open the bot chat.
+    inviteLink: `https://t.me/${BOT_USERNAME}?startapp=ref_${user.ref_code}`,
     stats: {
       total: stats?.total ?? 0,
       taken: stats?.taken ?? 0,

@@ -45,7 +45,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function bootstrap() {
     try {
       initTelegram();
-      const [cfg, usr] = await Promise.all([api.config(), api.auth()]);
+      const [cfg, authed] = await Promise.all([api.config(), api.auth()]);
+      // A 'rejected' state is transient — if the app is reopened while rejected,
+      // clear it so the user lands on the normal view.
+      let usr = authed;
+      if (usr.status === 'rejected') {
+        try {
+          usr = await api.resetRegistration();
+        } catch {
+          /* ignore */
+        }
+      }
       setConfig(cfg);
       setUser(usr);
       setError(null);

@@ -141,6 +141,18 @@ app.post('/api/registration/have-account', (req, res) => {
   res.json(buildUserState(req.user));
 });
 
+// Clear a transient 'rejected'/'verifying' state back to a clean 'unregistered'
+// view (used to auto-dismiss the rejection card). Never touches a verified user.
+app.post('/api/registration/reset', (req, res) => {
+  db.prepare(
+    `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
+       pocket_option_id = NULL, verify_started_at = NULL
+     WHERE tg_id = ? AND status = 'rejected'`
+  ).run(req.user.tg_id);
+  const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+  res.json(buildUserState(fresh));
+});
+
 // Generate a signal (verified users only)
 app.post('/api/signals/generate', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;

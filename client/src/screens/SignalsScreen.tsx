@@ -27,6 +27,7 @@ export default function SignalsScreen() {
   const [generating, setGenerating] = useState(false);
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
   const prevStatus = useRef(user?.status);
+  const statusRef = useRef(user?.status);
 
   // While verifying, poll the verification endpoint (it re-checks the
   // PocketOption affiliate API and promotes the user once registered).
@@ -57,6 +58,27 @@ export default function SignalsScreen() {
     }
     prevStatus.current = user?.status;
   }, [user?.status]);
+
+  // The rejection card is a transient heads-up. Auto-clear it ~7s after it
+  // shows (unless the user tapped "enter ID again" and is actively retrying).
+  useEffect(() => {
+    if (user?.status !== 'rejected' || regStep === 'enterId') return;
+    const t = setTimeout(() => {
+      api.resetRegistration().then(setUser).catch(() => {});
+    }, 7000);
+    return () => clearTimeout(t);
+  }, [user?.status, regStep, setUser]);
+
+  // Leaving the Signals tab (this screen unmounts) while rejected also returns
+  // the user to the normal view. statusRef keeps the latest status for cleanup.
+  statusRef.current = user?.status;
+  useEffect(() => {
+    return () => {
+      if (statusRef.current === 'rejected') {
+        api.resetRegistration().then(setUser).catch(() => {});
+      }
+    };
+  }, [setUser]);
 
   if (!user || !config) return null;
   const verified = user.status === 'verified';

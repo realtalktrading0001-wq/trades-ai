@@ -78,6 +78,7 @@ export const api = {
       body: JSON.stringify({ pocketOptionId }),
     }),
   verifyStatus: () => request<UserState>('/api/registration/status'),
+  resetRegistration: () => request<UserState>('/api/registration/reset', { method: 'POST' }),
   generateSignal: (pair: string, expiration: string) =>
     request<Signal>('/api/signals/generate', {
       method: 'POST',

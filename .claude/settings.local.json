@@ -35,7 +35,9 @@
       "Bash(PORT=4100 npm --prefix server start)",
       "Bash(VERIFY_REJECT_SECONDS=2 PORT=4100 npm --prefix server start)",
       "Bash(VERIFY_REJECT_SECONDS=3 npm run dev)",
-      "Bash(VERIFY_REJECT_SECONDS=3 npm --prefix server run dev)"
+      "Bash(VERIFY_REJECT_SECONDS=3 npm --prefix server run dev)",
+      "Bash(git commit *)",
+      "Bash(node -e \"setTimeout\\(\\(\\)=>{},2500\\)\")"
     ]
   }
 }

@@ -15,7 +15,7 @@ db.exec(`
     tg_id             TEXT PRIMARY KEY,
     name              TEXT,
     pocket_option_id  TEXT,
-    status            TEXT NOT NULL DEFAULT 'unregistered', -- unregistered | verifying | verified
+    status            TEXT NOT NULL DEFAULT 'unregistered', -- unregistered | verifying | verified | rejected
     subscription      TEXT NOT NULL DEFAULT 'Not registered',
     timezone          TEXT NOT NULL DEFAULT 'UTC+0 (Lagos)',
     language          TEXT NOT NULL DEFAULT 'GB English',
@@ -57,7 +57,7 @@ export interface UserRow {
   tg_id: string;
   name: string | null;
   pocket_option_id: string | null;
-  status: 'unregistered' | 'verifying' | 'verified';
+  status: 'unregistered' | 'verifying' | 'verified' | 'rejected';
   subscription: string;
   timezone: string;
   language: string;

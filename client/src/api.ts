@@ -15,7 +15,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 // ---- Types shared with the backend ------------------------------------------
-export type UserStatus = 'unregistered' | 'verifying' | 'verified';
+export type UserStatus = 'unregistered' | 'verifying' | 'verified' | 'rejected';
 
 export interface UserState {
   id: string;

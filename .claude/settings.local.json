@@ -31,7 +31,11 @@
       "Bash(git add *)",
       "Bash(grep -E \"\\\\.env$|node_modules|/dist/|\\\\.sqlite\")",
       "Bash(git commit -q -m '@ *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(PORT=4100 npm --prefix server start)",
+      "Bash(VERIFY_REJECT_SECONDS=2 PORT=4100 npm --prefix server start)",
+      "Bash(VERIFY_REJECT_SECONDS=3 npm run dev)",
+      "Bash(VERIFY_REJECT_SECONDS=3 npm --prefix server run dev)"
     ]
   }
 }

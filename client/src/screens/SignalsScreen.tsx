@@ -62,6 +62,7 @@ export default function SignalsScreen() {
   const verified = user.status === 'verified';
   const showRegistrationState =
     user.status === 'verifying' ||
+    user.status === 'rejected' ||
     (user.status === 'verified' && showVerifiedToast) ||
     (user.status !== 'verified' && regStep === 'enterId');
 
@@ -133,6 +134,7 @@ export default function SignalsScreen() {
             status={user.status}
             regStep={regStep}
             pocketOptionId={user.pocketOptionId}
+            refUrl={config.pocketOptionRefUrl}
             onOpenModal={() => setModalOpen(true)}
             onEnterIdLink={() => setRegStep('enterId')}
             onBackToStep1={() => setRegStep('step1')}

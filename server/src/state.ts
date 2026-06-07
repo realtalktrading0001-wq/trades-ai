@@ -47,7 +47,18 @@ export async function runVerification(user: UserRow): Promise<UserRow> {
 
   const result = await verifyPocketOptionId(user.pocket_option_id);
   if (result.registered) return markVerified(user, result.depositAmount);
-  return user; // not found yet — stays "verifying"
+
+  // Definitive "not under our affiliate". Give a short grace window first so a
+  // brand-new registration that hasn't propagated yet isn't falsely rejected,
+  // then move to 'rejected' (the UI then tells them to register via our link).
+  if (result.notFound && user.verify_started_at) {
+    const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 8) * 1000;
+    if (Date.now() - user.verify_started_at >= graceMs) {
+      db.prepare(`UPDATE users SET status = 'rejected' WHERE tg_id = ?`).run(user.tg_id);
+      return db.prepare('SELECT * FROM users WHERE tg_id = ?').get(user.tg_id) as unknown as UserRow;
+    }
+  }
+  return user; // still within grace / transient error — stays "verifying"
 }
 
 export function buildUserState(userRow: UserRow) {

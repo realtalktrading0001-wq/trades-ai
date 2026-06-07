@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { UserStatus } from '../api';
 import { WarningIcon, RefreshIcon, CheckIcon } from './Icons';
+import { openExternal } from '../telegram';
 
 interface Props {
   status: UserStatus;
   regStep: 'step1' | 'enterId';
   pocketOptionId: string | null;
+  refUrl: string;
   onOpenModal: () => void;
   onEnterIdLink: () => void;
   onBackToStep1: () => void;
@@ -17,6 +19,7 @@ export default function RegistrationCard({
   status,
   regStep,
   pocketOptionId,
+  refUrl,
   onOpenModal,
   onEnterIdLink,
   onBackToStep1,
@@ -68,6 +71,40 @@ export default function RegistrationCard({
           className="btn-ghost mt-4 w-full py-2.5"
         >
           <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> Tap refresh to check
+        </button>
+      </div>
+    );
+  }
+
+  // ---- Rejected: the submitted ID is not registered under our link ----
+  if (status === 'rejected' && regStep !== 'enterId') {
+    return (
+      <div className="card border-danger/30 bg-danger/5 p-5">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-danger/15 text-danger">
+            <WarningIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="font-bold text-white">Account not under our link</div>
+            <div className="mt-1 text-sm text-slate-300">
+              ID <span className="font-semibold">{pocketOptionId}</span> isn't registered under our
+              link, so we can't unlock signals. Please create a new PocketOption account using our
+              link, then enter that ID.
+            </div>
+          </div>
+        </div>
+        <button onClick={() => openExternal(refUrl)} className="btn-cyan mt-4 w-full py-3 animate-pulse-glow">
+          Register on PocketOption
+        </button>
+        <button
+          onClick={() => {
+            setIdInput('');
+            setErr(null);
+            onEnterIdLink();
+          }}
+          className="mt-3 block w-full text-sm font-semibold text-electric"
+        >
+          I've registered — enter ID again
         </button>
       </div>
     );

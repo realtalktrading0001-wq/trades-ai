@@ -12,6 +12,7 @@ export const MIN_DEPOSIT_USD = Number(process.env.MIN_DEPOSIT_USD) || 15;
 
 export interface PoVerifyResult {
   registered: boolean; // user exists under our affiliate (HTTP 200, not an error body)
+  notFound: boolean; // definitive "this id is not under our affiliate" (404 / error body)
   depositAmount: number; // best-effort total deposit in USD (0 if unknown)
   configured: boolean; // API token + partner id present
   raw?: unknown;
@@ -48,7 +49,7 @@ function extractDeposit(data: unknown): number {
 
 /** Look up a PocketOption user id against our affiliate. */
 export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResult> {
-  if (!PO_CONFIGURED) return { registered: false, depositAmount: 0, configured: false };
+  if (!PO_CONFIGURED) return { registered: false, notFound: false, depositAmount: 0, configured: false };
 
   const hash = crypto.createHash('md5').update(`${userId}:${PARTNER_ID}:${API_TOKEN}`).digest('hex');
   const url = `${API_BASE}/${encodeURIComponent(userId)}/${PARTNER_ID}/${hash}`;
@@ -69,7 +70,7 @@ export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResu
     if (res.status === 200 && !isError) {
       const depositAmount = extractDeposit(data);
       console.log(`[po-verify] ${userId} registered (deposit≈${depositAmount}). raw:`, JSON.stringify(data).slice(0, 500));
-      return { registered: true, depositAmount, configured: true, raw: data };
+      return { registered: true, notFound: false, depositAmount, configured: true, raw: data };
     }
 
     let message = `status_${res.status}`;
@@ -77,10 +78,14 @@ export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResu
       const m = (data as Record<string, unknown>).message;
       if (typeof m === 'string') message = m;
     }
-    return { registered: false, depositAmount: 0, configured: true, raw: data, error: message };
+    // 404 or an error body = the id is definitively not under our affiliate.
+    const notFound = res.status === 404 || res.status === 400 || isError === true;
+    return { registered: false, notFound, depositAmount: 0, configured: true, raw: data, error: message };
   } catch (e) {
+    // Network/timeout error — NOT a definitive rejection; let the caller retry.
     return {
       registered: false,
+      notFound: false,
       depositAmount: 0,
       configured: true,
       error: e instanceof Error ? e.message : 'fetch_failed',

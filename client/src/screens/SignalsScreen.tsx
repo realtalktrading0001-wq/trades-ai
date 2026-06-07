@@ -18,7 +18,7 @@ function PairFlag() {
 }
 
 export default function SignalsScreen() {
-  const { user, config, setUser, refresh, theme, toggleTheme } = useApp();
+  const { user, config, setUser, theme, toggleTheme } = useApp();
   const [regStep, setRegStep] = useState<'step1' | 'enterId'>('step1');
   const [modalOpen, setModalOpen] = useState(false);
   const [pair, setPair] = useState('EUR/USD-OTC');
@@ -28,11 +28,23 @@ export default function SignalsScreen() {
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
   const prevStatus = useRef(user?.status);
 
+  // While verifying, poll the verification endpoint (it re-checks the
+  // PocketOption affiliate API and promotes the user once registered).
+  async function verifyNow() {
+    try {
+      const u = await api.verifyStatus();
+      setUser(u);
+    } catch {
+      /* ignore transient errors */
+    }
+  }
+
   useEffect(() => {
     if (user?.status !== 'verifying') return;
-    const id = setInterval(refresh, 2000);
+    const id = setInterval(verifyNow, 3000);
     return () => clearInterval(id);
-  }, [user?.status, refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.status]);
 
   // When verification just completed (verifying -> verified), flash the
   // "Account verified" confirmation for a few seconds, then remove it.
@@ -128,7 +140,7 @@ export default function SignalsScreen() {
               const updated = await api.submitId(id);
               setUser(updated);
             }}
-            onRefresh={refresh}
+            onRefresh={verifyNow}
           />
         </div>
       )}

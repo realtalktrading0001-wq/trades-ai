@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
-import { buildUserState, maybeVerify } from './state.js';
+import { buildUserState, runVerification } from './state.js';
 
 const app = express();
 app.use(cors());
@@ -114,8 +114,8 @@ app.get('/api/me', (req, res) => {
   res.json(buildUserState(req.user));
 });
 
-// Registration: submit PocketOption ID -> start simulated verification
-app.post('/api/registration/id', (req, res) => {
+// Registration: submit PocketOption ID -> look it up against our affiliate now.
+app.post('/api/registration/id', async (req, res) => {
   const { pocketOptionId } = req.body ?? {};
   if (!pocketOptionId || !/^\d{4,12}$/.test(String(pocketOptionId))) {
     res.status(400).json({ error: 'Enter a valid numeric PocketOption ID' });
@@ -125,13 +125,14 @@ app.post('/api/registration/id', (req, res) => {
     `UPDATE users SET pocket_option_id = ?, status = 'verifying', verify_started_at = ? WHERE tg_id = ?`
   ).run(String(pocketOptionId), Date.now(), req.user.tg_id);
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
-  res.json(buildUserState(fresh));
+  const verified = await runVerification(fresh); // auto-accept if registered under us
+  res.json(buildUserState(verified));
 });
 
-// Poll verification status (drives the "Verifying…" card)
-app.get('/api/registration/status', (req, res) => {
+// Poll verification status (drives the "Verifying…" card) — re-checks the API.
+app.get('/api/registration/status', async (req, res) => {
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
-  const verified = maybeVerify(fresh);
+  const verified = await runVerification(fresh);
   res.json(buildUserState(verified));
 });
 
@@ -142,7 +143,7 @@ app.post('/api/registration/have-account', (req, res) => {
 
 // Generate a signal (verified users only)
 app.post('/api/signals/generate', (req, res) => {
-  const user = maybeVerify(req.user);
+  const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
   if (user.status !== 'verified') {
     res.status(403).json({ error: 'not_verified' });
     return;

@@ -53,7 +53,8 @@ export default function RegistrationCard({
           <div>
             <div className="font-bold text-white">Verifying…</div>
             <div className="text-sm text-slate-300">
-              Your ID is being verified automatically. This usually takes a few seconds.
+              Checking your PocketOption account. Make sure you registered using our link — if you
+              just signed up, this can take a moment.
             </div>
           </div>
         </div>

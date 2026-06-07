@@ -24,7 +24,16 @@ services:
         sync: false            # your real affiliate link
       - key: SUPPORT_HANDLE
         value: Tradesaisupport
-      - key: VERIFY_DELAY_SECONDS
-        value: "6"
       - key: WEEKLY_PRIZE_POOL
         value: "400"
+      # PocketOption affiliate API (real ID verification)
+      - key: POCKETOPTION_API_TOKEN
+        sync: false            # paste your affiliate API token in the dashboard (secret)
+      - key: POCKETOPTION_PARTNER_ID
+        value: "752344"
+      - key: POCKETOPTION_API_BASE
+        value: https://pocketpartners.com/api/user-info
+      - key: MIN_DEPOSIT_USD
+        value: "15"
+      - key: VERIFY_DELAY_SECONDS
+        value: "6"            # fallback only (used if POCKETOPTION_API_TOKEN is blank)

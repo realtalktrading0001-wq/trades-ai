@@ -42,7 +42,8 @@
       "Bash(rm -f 'C:\\\\Users\\\\pc\\\\AppData\\\\Local\\\\Temp\\\\ffx\\\\frames2/*.jpg')",
       "Bash('C:\\\\Users\\\\pc\\\\AppData\\\\Local\\\\Temp\\\\ffx\\\\node_modules\\\\ffmpeg-static\\\\ffmpeg.exe' -i 'C:\\\\Users\\\\pc\\\\Downloads\\\\video5852693917840974626.mp4')",
       "Bash(node -e \"\\(async\\(\\)=>{try{const r=await fetch\\('http://localhost:4000/api/health'\\);console.log\\('api',r.status\\);}catch\\(e\\){console.log\\('api down'\\)}}\\)\\(\\)\")",
-      "Bash(npm --prefix server run dev)"
+      "Bash(npm --prefix server run dev)",
+      "Bash(node -e \"\\(async\\(\\)=>{try{const a=await fetch\\('http://localhost:4000/api/health'\\);const v=await fetch\\('http://localhost:5173/'\\);console.log\\('api',a.status,'vite',v.status\\);}catch\\(e\\){console.log\\('down',e.message\\)}}\\)\\(\\)\")"
     ]
   }
 }

@@ -144,7 +144,7 @@ export default function SignalsScreen() {
   const locked = generating || (signal !== null && !decided);
 
   return (
-    <div className="min-h-[calc(100vh-180px)]">
+    <div className="flex min-h-[calc(100vh-172px)] flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-[20px] font-extrabold leading-none tracking-[0.06em]" style={{ color: 'var(--app-strong)' }}>
           <span className="bg-gradient-to-r from-electric via-cyan to-electric bg-clip-text text-transparent">
@@ -202,43 +202,45 @@ export default function SignalsScreen() {
         />
       </div>
 
-      {generating ? (
-        <div
-          className="mt-6 flex min-h-[160px] flex-col items-center justify-center gap-4 rounded-[16px] border px-6 text-center"
-          style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
-        >
-          <span className="h-12 w-12 rounded-full border-[3px] border-cyan/25 border-t-cyan animate-spin" />
-          <span className="text-[15px] font-semibold text-cyan">{ANALYSIS_PHASES[phase]}</span>
-          <div className="h-1.5 w-2/3 overflow-hidden rounded-full" style={{ background: 'var(--ring-track)' }}>
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-electric to-cyan transition-all duration-700"
-              style={{ width: `${[34, 68, 96][phase]}%` }}
-            />
-          </div>
-        </div>
-      ) : signal ? (
-        <div className="mt-3">
-          <SignalCard signal={signal} onTake={() => track('taken')} onSkip={() => track('skipped')} />
-        </div>
-      ) : (
-        <>
+      {/* Middle area grows and centers its content so neither the tall signal
+          card nor the short idle view leaves an awkward gap above the button. */}
+      <div className="flex grow flex-col justify-center py-4">
+        {generating ? (
           <div
-            className="mt-6 flex min-h-[92px] items-center justify-center rounded-[16px] border px-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
+            className="flex min-h-[160px] flex-col items-center justify-center gap-4 rounded-[16px] border px-6 text-center"
             style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
           >
-            <span className="text-[15px] font-medium text-muted">Press 'Get Signal' to start</span>
+            <span className="h-12 w-12 rounded-full border-[3px] border-cyan/25 border-t-cyan animate-spin" />
+            <span className="text-[15px] font-semibold text-cyan">{ANALYSIS_PHASES[phase]}</span>
+            <div className="h-1.5 w-2/3 overflow-hidden rounded-full" style={{ background: 'var(--ring-track)' }}>
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-electric to-cyan transition-all duration-700"
+                style={{ width: `${[34, 68, 96][phase]}%` }}
+              />
+            </div>
           </div>
+        ) : signal ? (
+          <SignalCard signal={signal} onTake={() => track('taken')} onSkip={() => track('skipped')} />
+        ) : (
+          <div className="space-y-6">
+            <div
+              className="flex min-h-[92px] items-center justify-center rounded-[16px] border px-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
+              style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
+            >
+              <span className="text-[15px] font-medium text-muted">Press 'Get Signal' to start</span>
+            </div>
 
-          <div className="mt-6 flex justify-center">
-            <WinrateRing value={80} />
+            <div className="flex justify-center">
+              <WinrateRing value={80} />
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
 
       <button
         onClick={getSignal}
         disabled={generating}
-        className="btn mt-2 h-[52px] w-full rounded-[14px] bg-gradient-to-r from-electric to-cyan text-[17px] font-extrabold text-white shadow-glow-cyan hover:brightness-110"
+        className="btn h-[52px] w-full rounded-[14px] bg-gradient-to-r from-electric to-cyan text-[17px] font-extrabold text-white shadow-glow-cyan hover:brightness-110"
       >
         <LightningIcon className="h-5 w-5" /> Get Signal
       </button>

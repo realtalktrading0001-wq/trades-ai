@@ -3,11 +3,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 
-// DATA_DIR lets the SQLite file live on a persistent disk in production (e.g. a
-// Render Disk mounted at /var/data). Falls back to ./server/data for local dev.
+// Where the SQLite file lives:
+//  - DATA_DIR if explicitly set, else
+//  - /var/data on Render (the persistent disk mount; Render sets RENDER=true), else
+//  - ./server/data for local dev.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = process.env.DATA_DIR || join(__dirname, '..', 'data');
+const dataDir =
+  process.env.DATA_DIR || (process.env.RENDER ? '/var/data' : join(__dirname, '..', 'data'));
 mkdirSync(dataDir, { recursive: true });
+console.log('[signal-ai] using data dir:', dataDir);
 
 export const db = new DatabaseSync(join(dataDir, 'signalai.sqlite'));
 db.exec('PRAGMA journal_mode = WAL;');

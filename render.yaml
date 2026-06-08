@@ -8,14 +8,22 @@ services:
   - type: web
     name: trades-ai
     runtime: node
-    plan: free
+    plan: starter            # paid: always-on (no cold starts) + allows a persistent disk
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
+    # Persistent disk so the SQLite DB (users, verifications, referrals, stats,
+    # settings) survives deploys and restarts.
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "24"
+      - key: DATA_DIR
+        value: /var/data     # SQLite lives on the persistent disk
       - key: BOT_TOKEN
         sync: false            # paste your @BotFather token in the dashboard
       - key: BOT_USERNAME

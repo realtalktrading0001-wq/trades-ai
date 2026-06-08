@@ -3,8 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 
+// DATA_DIR lets the SQLite file live on a persistent disk in production (e.g. a
+// Render Disk mounted at /var/data). Falls back to ./server/data for local dev.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '..', 'data');
+const dataDir = process.env.DATA_DIR || join(__dirname, '..', 'data');
 mkdirSync(dataDir, { recursive: true });
 
 export const db = new DatabaseSync(join(dataDir, 'signalai.sqlite'));

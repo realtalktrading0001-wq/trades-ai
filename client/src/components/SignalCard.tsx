@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { Signal } from '../api';
 import { ArrowUpIcon, ArrowDownIcon, WarningIcon, CheckIcon, CloseIcon } from './Icons';
+import { useT } from '../useT';
+import { useApp } from '../state/AppContext';
+import { formatHHMM } from '../time';
 
 interface Props {
   signal: Signal;
@@ -15,23 +18,16 @@ function parseExpirySeconds(exp: string): number {
   return m[2].toLowerCase() === 'min' ? n * 60 : n;
 }
 
-function hhmm(ts: number): string {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
 function strengthColor(s: number): string {
-  if (s < 40) return '#EF4444'; // weak
-  if (s < 70) return '#F59E0B'; // moderate
-  return '#22C55E'; // strong
+  if (s < 40) return '#EF4444';
+  if (s < 70) return '#F59E0B';
+  return '#22C55E';
 }
 
-function recommendation(s: number): { text: string; tone: 'warn' | 'ok' } {
-  if (s < 40)
-    return { text: 'Consider skipping or switching pairs. Weak trend reduces signal accuracy.', tone: 'warn' };
-  if (s < 70)
-    return { text: 'Moderate trend. Manage your risk and confirm the entry before trading.', tone: 'warn' };
-  return { text: 'Strong trend detected — favorable entry conditions for this expiry.', tone: 'ok' };
+function recommendation(s: number): { key: string; tone: 'warn' | 'ok' } {
+  if (s < 40) return { key: 'rec.weak', tone: 'warn' };
+  if (s < 70) return { key: 'rec.moderate', tone: 'warn' };
+  return { key: 'rec.strong', tone: 'ok' };
 }
 
 function Box({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -46,6 +42,8 @@ function Box({ children, className = '' }: { children: React.ReactNode; classNam
 }
 
 export default function SignalCard({ signal, onTake, onSkip }: Props) {
+  const t = useT();
+  const { user } = useApp();
   const expirySecs = parseExpirySeconds(signal.expiration);
   const expiresAt = signal.createdAt + expirySecs * 1000;
   const [now, setNow] = useState(Date.now());
@@ -68,9 +66,9 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
     signal.trendBias === 'Bullish' ? '#22C55E' : signal.trendBias === 'Bearish' ? '#EF4444' : 'var(--app-muted)';
 
   return (
-    <div className="card animate-fade-in p-3 space-y-1.5">
+    <div className="card animate-fade-in p-3 space-y-2.5">
       <h2 className="text-[15px] font-extrabold leading-none" style={{ color: 'var(--app-strong)' }}>
-        Signal
+        {t('card.signal')}
       </h2>
 
       {/* Currency pair */}
@@ -79,7 +77,7 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
           {base}
         </span>
         <div className="leading-tight">
-          <div className="label-muted">Currency Pair</div>
+          <div className="label-muted">{t('card.pair')}</div>
           <div className="text-[15px] font-extrabold" style={{ color: 'var(--app-strong)' }}>
             {signal.pair}
           </div>
@@ -89,13 +87,13 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
       {/* Timeframe + Accuracy */}
       <div className="grid grid-cols-2 gap-2.5">
         <Box>
-          <div className="label-muted">Timeframe</div>
+          <div className="label-muted">{t('card.timeframe')}</div>
           <div className="text-[15px] font-extrabold leading-tight" style={{ color: 'var(--app-strong)' }}>
             {signal.expiration}
           </div>
         </Box>
         <Box>
-          <div className="label-muted">Accuracy</div>
+          <div className="label-muted">{t('card.accuracy')}</div>
           <div className="text-[15px] font-extrabold leading-tight text-electric">{signal.accuracy}%</div>
         </Box>
       </div>
@@ -103,9 +101,9 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
       {/* Trend strength */}
       <Box>
         <div className="flex items-center justify-between">
-          <span className="label-muted">Trend Strength</span>
+          <span className="label-muted">{t('card.trend')}</span>
           <span className="text-[12px] font-semibold" style={{ color: biasColor }}>
-            — {signal.trendBias}
+            — {t('bias.' + signal.trendBias)}
           </span>
         </div>
         <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--ring-track)' }}>
@@ -115,11 +113,11 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
           />
         </div>
         <div className="mt-1 flex items-center justify-between text-[11px] text-muted">
-          <span>Weak</span>
+          <span>{t('card.weak')}</span>
           <span className="font-bold" style={{ color: 'var(--app-strong)' }}>
             {signal.trendStrength}%
           </span>
-          <span>Strong</span>
+          <span>{t('card.strong')}</span>
         </div>
       </Box>
 
@@ -134,25 +132,29 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
         <WarningIcon className={`mt-0.5 h-4 w-4 shrink-0 ${rec.tone === 'ok' ? 'text-success' : 'text-amber'}`} />
         <div className="leading-snug">
           <div className="text-[12.5px] font-bold" style={{ color: 'var(--app-strong)' }}>
-            Recommendation
+            {t('card.recommendation')}
           </div>
-          <div className="text-[12px] text-muted">{rec.text}</div>
+          <div className="text-[12px] text-muted">{t(rec.key)}</div>
         </div>
       </div>
 
-      {/* Direction */}
+      {/* Direction — the headline of the card, made large to draw attention */}
       <div
-        className="flex items-center justify-between rounded-[12px] border px-3.5 py-1.5"
-        style={{ background: up ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', borderColor: dirColor }}
+        className="mt-0.5 flex items-center justify-between rounded-[14px] border-2 px-4 py-3"
+        style={{
+          background: up ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+          borderColor: dirColor,
+          boxShadow: `0 0 22px ${up ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
+        }}
       >
         <div className="leading-tight">
-          <div className="label-muted">Direction</div>
-          <div className="flex items-center gap-1.5 text-[21px] font-extrabold" style={{ color: dirColor }}>
-            {up ? <ArrowUpIcon className="h-5 w-5" /> : <ArrowDownIcon className="h-5 w-5" />}
-            {signal.direction}
+          <div className="label-muted">{t('card.direction')}</div>
+          <div className="mt-0.5 flex items-center gap-2 text-[30px] font-extrabold leading-none" style={{ color: dirColor }}>
+            {up ? <ArrowUpIcon className="h-8 w-8" /> : <ArrowDownIcon className="h-8 w-8" />}
+            {t(up ? 'card.up' : 'card.down')}
           </div>
         </div>
-        <div className="text-[12px] text-muted">until {hhmm(expiresAt)}</div>
+        <div className="text-[13px] text-muted">{t('card.until')} {formatHHMM(expiresAt, user?.timezone)}</div>
       </div>
 
       {/* Take / Skip */}
@@ -166,7 +168,7 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
             className="btn py-2.5 text-[14px] font-bold text-white"
             style={{ background: '#22C55E' }}
           >
-            <CheckIcon className="h-4 w-4" /> Take
+            <CheckIcon className="h-4 w-4" /> {t('card.take')}
           </button>
           <button
             onClick={() => {
@@ -176,20 +178,20 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
             className="btn py-2.5 text-[14px] font-bold text-danger"
             style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)' }}
           >
-            <CloseIcon className="h-4 w-4" /> Skip
+            <CloseIcon className="h-4 w-4" /> {t('card.skip')}
           </button>
         </div>
       ) : (
         <div className="rounded-[12px] border py-2 text-center" style={{ borderColor: 'var(--card-border)' }}>
-          <span className="text-[13px] font-semibold text-success">Trade recorded ✓</span>
+          <span className="text-[13px] font-semibold text-success">{t('card.recorded')}</span>
         </div>
       )}
 
       {/* Time to expiry */}
       <Box className="flex items-center justify-between">
-        <span className="label-muted">Time to expiry</span>
+        <span className="label-muted">{t('card.timeToExpiry')}</span>
         <span className={`font-mono text-[14px] font-bold ${expired ? 'text-muted' : 'text-cyan'}`}>
-          {expired ? 'Expired' : `${String(Math.floor(remainingS / 60)).padStart(2, '0')}:${String(remainingS % 60).padStart(2, '0')}`}
+          {expired ? t('card.expired') : `${String(Math.floor(remainingS / 60)).padStart(2, '0')}:${String(remainingS % 60).padStart(2, '0')}`}
         </span>
       </Box>
     </div>

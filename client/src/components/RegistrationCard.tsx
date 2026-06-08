@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { UserStatus } from '../api';
 import { WarningIcon, RefreshIcon, CheckIcon } from './Icons';
 import { openExternal } from '../telegram';
+import { useT } from '../useT';
 
 interface Props {
   status: UserStatus;
@@ -26,6 +27,7 @@ export default function RegistrationCard({
   onSubmitId,
   onRefresh,
 }: Props) {
+  const t = useT();
   const [idInput, setIdInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -38,27 +40,24 @@ export default function RegistrationCard({
           <CheckIcon className="h-5 w-5" />
         </span>
         <div>
-          <div className="font-bold text-white">Account verified ✓</div>
+          <div className="font-bold text-white">{t('reg.verified')}</div>
           <div className="text-sm text-slate-300">
-            PocketOption ID: <span className="font-semibold text-success">{pocketOptionId}</span> · signals unlocked
+            {t('reg.poId')}: <span className="font-semibold text-success">{pocketOptionId}</span> · {t('reg.unlocked')}
           </div>
         </div>
       </div>
     );
   }
 
-  // ---- Step 3: verifying ----
+  // ---- Verifying ----
   if (status === 'verifying') {
     return (
       <div className="card p-5">
         <div className="flex items-center gap-3">
           <span className="h-10 w-10 rounded-full border-[3px] border-cyan/30 border-t-cyan animate-spin" />
           <div>
-            <div className="font-bold text-white">Verifying…</div>
-            <div className="text-sm text-slate-300">
-              Checking your PocketOption account. Make sure you registered using our link — if you
-              just signed up, this can take a moment.
-            </div>
+            <div className="font-bold text-white">{t('reg.verifying')}</div>
+            <div className="text-sm text-slate-300">{t('reg.verifyingText')}</div>
           </div>
         </div>
         <button
@@ -70,7 +69,7 @@ export default function RegistrationCard({
           disabled={busy}
           className="btn-ghost mt-4 w-full py-2.5"
         >
-          <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> Tap refresh to check
+          <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> {t('reg.tapRefresh')}
         </button>
       </div>
     );
@@ -85,16 +84,12 @@ export default function RegistrationCard({
             <WarningIcon className="h-5 w-5" />
           </span>
           <div>
-            <div className="font-bold text-white">Account not under our link</div>
-            <div className="mt-1 text-sm text-slate-300">
-              ID <span className="font-semibold">{pocketOptionId}</span> isn't registered under our
-              link, so we can't unlock signals. Please create a new PocketOption account using our
-              link, then enter that ID.
-            </div>
+            <div className="font-bold text-white">{t('reg.rejectedTitle')}</div>
+            <div className="mt-1 text-sm text-slate-300">{t('reg.rejectedText', { id: pocketOptionId ?? '' })}</div>
           </div>
         </div>
         <button onClick={() => openExternal(refUrl)} className="btn-cyan mt-4 w-full py-3 animate-pulse-glow">
-          Register on PocketOption
+          {t('reg.registerPO')}
         </button>
         <button
           onClick={() => {
@@ -104,7 +99,7 @@ export default function RegistrationCard({
           }}
           className="mt-3 block w-full text-sm font-semibold text-electric"
         >
-          I've registered — enter ID again
+          {t('reg.enterAgain')}
         </button>
       </div>
     );
@@ -115,10 +110,10 @@ export default function RegistrationCard({
     return (
       <div className="card p-5">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-bold uppercase tracking-widest text-cyan">Step 2/2</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-cyan">{t('reg.step2')}</div>
         </div>
-        <h3 className="mt-1 text-lg font-extrabold text-white">Enter your PocketOption ID</h3>
-        <p className="mt-1 text-sm text-muted">Find it in your PocketOption profile.</p>
+        <h3 className="mt-1 text-lg font-extrabold text-white">{t('reg.enterYourId')}</h3>
+        <p className="mt-1 text-sm text-muted">{t('reg.findId')}</p>
         <input
           value={idInput}
           inputMode="numeric"
@@ -145,10 +140,10 @@ export default function RegistrationCard({
           disabled={busy || idInput.length < 4}
           className="btn-primary mt-3 w-full py-3"
         >
-          {busy ? 'Submitting…' : 'Submit'}
+          {busy ? t('reg.submitting') : t('reg.submit')}
         </button>
         <button onClick={onBackToStep1} className="mt-3 block w-full text-sm font-semibold text-electric">
-          ← Register on PocketOption
+          {t('reg.backRegister')}
         </button>
       </div>
     );
@@ -157,24 +152,24 @@ export default function RegistrationCard({
   // ---- Step 1/2: not registered (default) ----
   return (
     <div className="card p-5">
-      <div className="text-xs font-bold uppercase tracking-widest text-cyan">Step 1/2</div>
+      <div className="text-xs font-bold uppercase tracking-widest text-cyan">{t('reg.step1')}</div>
       <h3 className="mt-1 text-lg font-extrabold text-white">
-        To view signals you need to <span className="text-cyan">Register on Pocket Option</span>
+        {t('reg.toView')} <span className="text-cyan">{t('reg.registerOnPO')}</span>
       </h3>
       <button onClick={onOpenModal} className="btn-primary mt-4 w-full py-3">
-        Register
+        {t('reg.register')}
       </button>
       <button onClick={onEnterIdLink} className="mt-3 block w-full text-sm font-semibold text-electric">
-        Enter your PocketOption ID
+        {t('reg.enterYourId')}
       </button>
 
       <div className="mt-4 flex items-center gap-2 rounded-xl bg-amber/10 border border-amber/30 px-3 py-2.5 text-sm text-amber">
         <WarningIcon className="h-4 w-4 shrink-0" />
-        You haven't completed registration yet
+        {t('reg.notDone')}
       </div>
 
       <button onClick={onOpenModal} className="btn-ghost mt-3 w-full py-2.5 text-sm">
-        I already have a PocketOption account
+        {t('reg.haveAccount')}
       </button>
     </div>
   );

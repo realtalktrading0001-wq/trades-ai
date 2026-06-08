@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
-import { api, type FaqData } from '../api';
+import { useApp } from '../state/AppContext';
 import Accordion from '../components/Accordion';
 import { SupportIcon } from '../components/Icons';
 import { openExternal } from '../telegram';
+import { useT } from '../useT';
+
+const FAQ_KEYS = ['1', '2', '3', '4'];
 
 export default function SupportScreen() {
-  const [data, setData] = useState<FaqData | null>(null);
-
-  useEffect(() => {
-    api.faq().then(setData).catch(() => {});
-  }, []);
-
-  if (!data) return null;
+  const { config } = useApp();
+  const t = useT();
+  if (!config) return null;
 
   return (
     <div className="space-y-4">
@@ -19,21 +17,21 @@ export default function SupportScreen() {
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan/15 border border-cyan/30 text-cyan">
           <SupportIcon className="h-7 w-7" />
         </span>
-        <h2 className="mt-3 text-lg font-extrabold text-white">How can we help?</h2>
-        <p className="mt-1 text-sm text-muted">We usually reply within a few minutes.</p>
+        <h2 className="mt-3 text-lg font-extrabold text-white">{t('sup.help')}</h2>
+        <p className="mt-1 text-sm text-muted">{t('sup.reply')}</p>
         <button
-          onClick={() => openExternal(`https://t.me/${data.supportHandle}`)}
+          onClick={() => openExternal(`https://t.me/${config.supportHandle}`)}
           className="btn-primary mt-4 w-full py-3"
         >
-          Contact Support on Telegram
+          {t('sup.contact')}
         </button>
       </div>
 
       <div className="space-y-2">
-        <div className="label-muted px-1">Frequently asked questions</div>
-        {data.faq.map((item) => (
-          <Accordion key={item.q} title={item.q}>
-            {item.a}
+        <div className="label-muted px-1">{t('sup.faq')}</div>
+        {FAQ_KEYS.map((k) => (
+          <Accordion key={k} title={t(`sup.q${k}`)}>
+            {t(`sup.a${k}`)}
           </Accordion>
         ))}
       </div>

@@ -17,11 +17,12 @@ export default function Dropdown({ label, value, options, onChange, prefix, butt
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
+    function onOutside(e: Event) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    // pointerdown covers mouse + touch uniformly (reliable inside Telegram).
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
   }, []);
 
   // Close the menu if the dropdown becomes disabled (e.g. signal generating).

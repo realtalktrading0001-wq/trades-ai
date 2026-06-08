@@ -1,31 +1,15 @@
 import { useState } from 'react';
 import { ChartUpIcon, ClockIcon, BarsIcon } from './Icons';
+import { useT } from '../useT';
 
 const SLIDES = [
-  {
-    Icon: ChartUpIcon,
-    title: 'AI Trading Signals',
-    header: 'Welcome to Trades AI! 🚀',
-    sub: 'Your intelligent trading assistant',
-    text: 'Get precise entry signals for binary options. Our AI analyzes market data in real-time to find the best trading opportunities.',
-  },
-  {
-    Icon: ClockIcon,
-    title: 'Multiple Timeframes',
-    header: 'Multiple Timeframes ⏱️',
-    sub: 'Trade on your schedule',
-    text: 'Choose from seconds to minutes expiration times. Select the timeframe that matches your trading style.',
-  },
-  {
-    Icon: BarsIcon,
-    title: 'Track Your Results',
-    header: 'Track Your Results 📊',
-    sub: 'Improve every day',
-    text: 'View your trading history and track your win rate. Learn from past trades and improve your strategy.',
-  },
+  { Icon: ChartUpIcon, k: 's1' },
+  { Icon: ClockIcon, k: 's2' },
+  { Icon: BarsIcon, k: 's3' },
 ];
 
 export default function OnboardingCarousel({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const [i, setI] = useState(0);
   const slide = SLIDES[i];
   const isLast = i === SLIDES.length - 1;
@@ -44,18 +28,16 @@ export default function OnboardingCarousel({ onDone }: { onDone: () => void }) {
             <slide.Icon className="h-14 w-14 text-cyan" />
           </div>
 
-          <div className="text-xs font-semibold uppercase tracking-widest text-cyan/80">{slide.title}</div>
-          <h2 className="mt-2 text-2xl font-extrabold text-white">{slide.header}</h2>
-          <p className="mt-1 text-sm font-medium text-muted">{slide.sub}</p>
-          <p className="mt-4 text-[15px] leading-relaxed text-slate-300">{slide.text}</p>
+          <div className="text-xs font-semibold uppercase tracking-widest text-cyan/80">{t(`ob.${slide.k}.title`)}</div>
+          <h2 className="mt-2 text-2xl font-extrabold text-white">{t(`ob.${slide.k}.header`)}</h2>
+          <p className="mt-1 text-sm font-medium text-muted">{t(`ob.${slide.k}.sub`)}</p>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-300">{t(`ob.${slide.k}.text`)}</p>
 
           <div className="mt-6 flex items-center justify-center gap-2">
             {SLIDES.map((_, idx) => (
               <span
                 key={idx}
-                className={`h-1.5 rounded-full transition-all ${
-                  idx === i ? 'w-6 bg-cyan' : 'w-1.5 bg-white/20'
-                }`}
+                className={`h-1.5 rounded-full transition-all ${idx === i ? 'w-6 bg-cyan' : 'w-1.5 bg-white/20'}`}
               />
             ))}
           </div>
@@ -66,11 +48,11 @@ export default function OnboardingCarousel({ onDone }: { onDone: () => void }) {
                 onClick={() => setI((n) => n - 1)}
                 className={`btn flex-1 py-3 ${i === 1 ? 'btn-cyan' : 'btn-charcoal'}`}
               >
-                {'< Back'}
+                {t('ob.back')}
               </button>
             )}
             <button onClick={next} className="btn-primary flex-1 py-3">
-              {'Next >'}
+              {t('ob.next')}
             </button>
           </div>
         </div>

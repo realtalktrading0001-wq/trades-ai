@@ -99,7 +99,7 @@ app.get('/api/config', (_req, res) => {
       'UTC-5 (New York)',
       'UTC-8 (Los Angeles)',
     ],
-    languages: ['GB English', 'US English', 'Español', 'Português', 'Français', 'العربية', 'Русский'],
+    languages: ['English', 'हिन्दी', 'Español', 'Português', 'Русский', 'العربية'],
   });
 });
 

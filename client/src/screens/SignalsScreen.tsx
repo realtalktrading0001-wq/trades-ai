@@ -8,6 +8,7 @@ import RegistrationModal from '../components/RegistrationModal';
 import SignalCard from '../components/SignalCard';
 import { ClockIcon, LightningIcon, MoonIcon, SunIcon } from '../components/Icons';
 import { haptic } from '../telegram';
+import { useT } from '../useT';
 
 function PairFlag() {
   return (
@@ -17,10 +18,9 @@ function PairFlag() {
   );
 }
 
-const ANALYSIS_PHASES = ['Analyzing market…', 'Calculating entry point…', 'Checking trends…'];
-
 export default function SignalsScreen() {
   const { user, config, setUser, theme, toggleTheme } = useApp();
+  const t = useT();
   const [regStep, setRegStep] = useState<'step1' | 'enterId'>('step1');
   const [modalOpen, setModalOpen] = useState(false);
   const [pair, setPair] = useState('EUR/USD-OTC');
@@ -144,8 +144,8 @@ export default function SignalsScreen() {
   const locked = generating || (signal !== null && !decided);
 
   return (
-    <div className="flex min-h-[calc(100vh-172px)] flex-col">
-      <div className="mb-3 flex items-center justify-between">
+    <div>
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-[20px] font-extrabold leading-none tracking-[0.06em]" style={{ color: 'var(--app-strong)' }}>
           <span className="bg-gradient-to-r from-electric via-cyan to-electric bg-clip-text text-transparent">
             TRADES
@@ -202,16 +202,14 @@ export default function SignalsScreen() {
         />
       </div>
 
-      {/* Middle area grows and centers its content so neither the tall signal
-          card nor the short idle view leaves an awkward gap above the button. */}
-      <div className="flex grow flex-col justify-center py-4">
+      <div className="mt-5">
         {generating ? (
           <div
             className="flex min-h-[160px] flex-col items-center justify-center gap-4 rounded-[16px] border px-6 text-center"
             style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
           >
             <span className="h-12 w-12 rounded-full border-[3px] border-cyan/25 border-t-cyan animate-spin" />
-            <span className="text-[15px] font-semibold text-cyan">{ANALYSIS_PHASES[phase]}</span>
+            <span className="text-[15px] font-semibold text-cyan">{t('sig.analyzing' + (phase + 1))}</span>
             <div className="h-1.5 w-2/3 overflow-hidden rounded-full" style={{ background: 'var(--ring-track)' }}>
               <div
                 className="h-full rounded-full bg-gradient-to-r from-electric to-cyan transition-all duration-700"
@@ -227,11 +225,11 @@ export default function SignalsScreen() {
               className="flex min-h-[92px] items-center justify-center rounded-[16px] border px-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
               style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
             >
-              <span className="text-[15px] font-medium text-muted">Press 'Get Signal' to start</span>
+              <span className="text-[15px] font-medium text-muted">{t('sig.press')}</span>
             </div>
 
             <div className="flex justify-center">
-              <WinrateRing value={80} />
+              <WinrateRing value={80} label={t('sig.winrate')} />
             </div>
           </div>
         )}
@@ -240,9 +238,9 @@ export default function SignalsScreen() {
       <button
         onClick={getSignal}
         disabled={generating}
-        className="btn h-[52px] w-full rounded-[14px] bg-gradient-to-r from-electric to-cyan text-[17px] font-extrabold text-white shadow-glow-cyan hover:brightness-110"
+        className="btn mt-5 h-[52px] w-full rounded-[14px] bg-gradient-to-r from-electric to-cyan text-[17px] font-extrabold text-white shadow-glow-cyan hover:brightness-110"
       >
-        <LightningIcon className="h-5 w-5" /> Get Signal
+        <LightningIcon className="h-5 w-5" /> {t('sig.getSignal')}
       </button>
 
       <RegistrationModal

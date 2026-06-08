@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useT } from '../useT';
 
 function parts(ms: number) {
   const clamp = Math.max(0, ms);
@@ -10,6 +11,7 @@ function parts(ms: number) {
 }
 
 export default function Countdown({ target }: { target: number }) {
+  const t = useT();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -26,10 +28,10 @@ export default function Countdown({ target }: { target: number }) {
   );
   return (
     <div className="flex items-center gap-2">
-      {cell(d, 'days')}
-      {cell(h, 'hrs')}
-      {cell(m, 'min')}
-      {cell(s, 'sec')}
+      {cell(d, t('ref.days'))}
+      {cell(h, t('ref.hrs'))}
+      {cell(m, t('ref.min'))}
+      {cell(s, t('ref.sec'))}
     </div>
   );
 }

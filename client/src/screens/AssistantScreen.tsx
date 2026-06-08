@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { BotIcon, SendIcon } from '../components/Icons';
+import { useT } from '../useT';
 
 interface Msg {
   role: 'user' | 'bot';
   text: string;
 }
 
-const SUGGESTIONS = ['Best pair right now?', 'Which expiration?', 'How do I manage risk?'];
+const SUGGESTION_KEYS = ['ai.s1', 'ai.s2', 'ai.s3'];
 
 export default function AssistantScreen() {
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'bot', text: 'Hi! I am your Trades AI assistant. Ask me about pairs, timeframes, or strategy. 📈' },
-  ]);
+  const t = useT();
+  const [messages, setMessages] = useState<Msg[]>(() => [{ role: 'bot', text: t('ai.greeting') }]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,7 @@ export default function AssistantScreen() {
       const { reply } = await api.assistant(trimmed);
       setMessages((m) => [...m, { role: 'bot', text: reply }]);
     } catch {
-      setMessages((m) => [...m, { role: 'bot', text: 'Sorry, I had trouble responding. Try again.' }]);
+      setMessages((m) => [...m, { role: 'bot', text: t('ai.error') }]);
     } finally {
       setThinking(false);
     }
@@ -44,8 +44,8 @@ export default function AssistantScreen() {
           <BotIcon className="h-5 w-5" />
         </span>
         <div>
-          <div className="font-bold text-white leading-tight">AI Assistant</div>
-          <div className="text-xs text-success">● online</div>
+          <div className="font-bold text-white leading-tight">{t('ai.title')}</div>
+          <div className="text-xs text-success">● {t('ai.online')}</div>
         </div>
       </div>
 
@@ -83,13 +83,13 @@ export default function AssistantScreen() {
 
       {messages.length <= 1 && (
         <div className="flex flex-wrap gap-2 py-2">
-          {SUGGESTIONS.map((s) => (
+          {SUGGESTION_KEYS.map((k) => (
             <button
-              key={s}
-              onClick={() => send(s)}
+              key={k}
+              onClick={() => send(t(k))}
               className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10"
             >
-              {s}
+              {t(k)}
             </button>
           ))}
         </div>
@@ -105,7 +105,7 @@ export default function AssistantScreen() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask anything about trading…"
+          placeholder={t('ai.placeholder')}
           className="input-dark flex-1"
         />
         <button type="submit" disabled={!input.trim() || thinking} className="btn-cyan h-12 w-12 shrink-0 !rounded-xl">

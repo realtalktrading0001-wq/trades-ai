@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, type AppConfig, type UserState } from '../api';
 import { initTelegram } from '../telegram';
+import { langToCode, isRTL } from '../i18n';
 
 export type Tab = 'profile' | 'referrals' | 'signals' | 'assistant' | 'support';
 export type ThemeMode = 'dark' | 'light';
@@ -82,6 +83,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // Apply language direction (RTL for Arabic) + lang attribute.
+  useEffect(() => {
+    const code = langToCode(user?.language);
+    document.documentElement.lang = code;
+    document.documentElement.dir = isRTL(code) ? 'rtl' : 'ltr';
+  }, [user?.language]);
 
   return (
     <AppContext.Provider

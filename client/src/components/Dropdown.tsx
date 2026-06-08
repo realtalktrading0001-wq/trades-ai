@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown } from './Icons';
+import { ChevronDown, LockIcon } from './Icons';
 
 interface DropdownProps {
   label?: string;
@@ -9,9 +9,10 @@ interface DropdownProps {
   prefix?: ReactNode;
   buttonClassName?: string;
   menuClassName?: string;
+  disabled?: boolean;
 }
 
-export default function Dropdown({ label, value, options, onChange, prefix, buttonClassName = '', menuClassName = '' }: DropdownProps) {
+export default function Dropdown({ label, value, options, onChange, prefix, buttonClassName = '', menuClassName = '', disabled = false }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -23,20 +24,30 @@ export default function Dropdown({ label, value, options, onChange, prefix, butt
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
+  // Close the menu if the dropdown becomes disabled (e.g. signal generating).
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
   return (
     <div ref={ref} className="relative">
       {label && <div className="label-muted mb-1.5">{label}</div>}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition hover:brightness-105 ${buttonClassName}`}
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:brightness-105'} ${buttonClassName}`}
         style={{ background: 'var(--pill-bg)', borderColor: 'var(--card-border)', color: 'var(--app-strong)' }}
       >
         <span className="flex min-w-0 items-center gap-2.5 font-semibold">
           {prefix}
           <span className="truncate">{value}</span>
         </span>
-        <ChevronDown className={`w-4 h-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+        {disabled ? (
+          <LockIcon className="h-4 w-4 text-muted" />
+        ) : (
+          <ChevronDown className={`w-4 h-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+        )}
       </button>
       {open && (
         <div

@@ -17,6 +17,8 @@ function PairFlag() {
   );
 }
 
+const ANALYSIS_PHASES = ['Analyzing market…', 'Calculating entry point…', 'Checking trends…'];
+
 export default function SignalsScreen() {
   const { user, config, setUser, theme, toggleTheme } = useApp();
   const [regStep, setRegStep] = useState<'step1' | 'enterId'>('step1');
@@ -25,6 +27,8 @@ export default function SignalsScreen() {
   const [expiration, setExpiration] = useState('3 min');
   const [signal, setSignal] = useState<Signal | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [decided, setDecided] = useState(false); // Take/Skip chosen -> unlock dropdowns
+  const [phase, setPhase] = useState(0); // analysis phase index
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
   const prevStatus = useRef(user?.status);
   const statusRef = useRef(user?.status);
@@ -99,24 +103,30 @@ export default function SignalsScreen() {
   async function getSignal() {
     if (!guard()) return;
     haptic();
-    setGenerating(true);
+    // Lock the pair/expiry and run the multi-phase analysis, then reveal.
+    setDecided(false);
     setSignal(null);
+    setPhase(0);
+    setGenerating(true);
     try {
       const s = await api.generateSignal(pair, expiration);
+      setTimeout(() => setPhase(1), 1000);
+      setTimeout(() => setPhase(2), 2000);
       setTimeout(() => {
         setSignal(s);
         setGenerating(false);
-      }, 900);
+      }, 2900);
     } catch {
       setGenerating(false);
     }
   }
 
   async function track(action: 'taken' | 'skipped') {
+    // Take/Skip unlocks the pair/expiry again; the card stays (recorded state +
+    // expiry countdown). Pressing "Get Signal" again replaces it with a new one.
+    setDecided(true);
     const stats = await api.track(action);
     setUser({ ...user!, stats });
-    // Keep the signal card on screen (it shows the recorded state + expiry
-    // countdown). Pressing "Get Signal" again replaces it with a new one.
   }
 
   // Changing the pair or expiration invalidates the current signal: clear it
@@ -129,6 +139,9 @@ export default function SignalsScreen() {
     setExpiration(v);
     setSignal(null);
   }
+
+  // Pair/expiry are locked during analysis and while a signal awaits a decision.
+  const locked = generating || (signal !== null && !decided);
 
   return (
     <div className="min-h-[calc(100vh-180px)]">
@@ -174,6 +187,7 @@ export default function SignalsScreen() {
           value={pair}
           options={config.currencyPairs}
           onChange={changePair}
+          disabled={locked}
           prefix={<PairFlag />}
           buttonClassName="h-[48px] rounded-[14px] border text-[15px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
           menuClassName="min-w-[210px]"
@@ -182,6 +196,7 @@ export default function SignalsScreen() {
           value={expiration}
           options={config.expirations}
           onChange={changeExpiration}
+          disabled={locked}
           prefix={<ClockIcon className="h-5 w-5 text-electric" />}
           buttonClassName="h-[48px] rounded-[14px] border text-[15px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.1)]"
         />
@@ -193,9 +208,12 @@ export default function SignalsScreen() {
           style={{ background: 'var(--panel-bg)', borderColor: 'var(--card-border)' }}
         >
           <span className="h-12 w-12 rounded-full border-[3px] border-cyan/25 border-t-cyan animate-spin" />
-          <span className="text-[15px] font-semibold text-cyan">Analyzing market...</span>
+          <span className="text-[15px] font-semibold text-cyan">{ANALYSIS_PHASES[phase]}</span>
           <div className="h-1.5 w-2/3 overflow-hidden rounded-full" style={{ background: 'var(--ring-track)' }}>
-            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-electric to-cyan animate-[pulse_1s_ease-in-out_infinite]" />
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-electric to-cyan transition-all duration-700"
+              style={{ width: `${[34, 68, 96][phase]}%` }}
+            />
           </div>
         </div>
       ) : signal ? (

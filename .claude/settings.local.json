@@ -37,7 +37,12 @@
       "Bash(VERIFY_REJECT_SECONDS=3 npm run dev)",
       "Bash(VERIFY_REJECT_SECONDS=3 npm --prefix server run dev)",
       "Bash(git commit *)",
-      "Bash(node -e \"setTimeout\\(\\(\\)=>{},2500\\)\")"
+      "Bash(node -e \"setTimeout\\(\\(\\)=>{},2500\\)\")",
+      "Bash(mkdir -p 'C:\\\\Users\\\\pc\\\\AppData\\\\Local\\\\Temp\\\\ffx\\\\frames2')",
+      "Bash(rm -f 'C:\\\\Users\\\\pc\\\\AppData\\\\Local\\\\Temp\\\\ffx\\\\frames2/*.jpg')",
+      "Bash('C:\\\\Users\\\\pc\\\\AppData\\\\Local\\\\Temp\\\\ffx\\\\node_modules\\\\ffmpeg-static\\\\ffmpeg.exe' -i 'C:\\\\Users\\\\pc\\\\Downloads\\\\video5852693917840974626.mp4')",
+      "Bash(node -e \"\\(async\\(\\)=>{try{const r=await fetch\\('http://localhost:4000/api/health'\\);console.log\\('api',r.status\\);}catch\\(e\\){console.log\\('api down'\\)}}\\)\\(\\)\")",
+      "Bash(npm --prefix server run dev)"
     ]
   }
 }

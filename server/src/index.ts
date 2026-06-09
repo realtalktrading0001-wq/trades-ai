@@ -121,9 +121,30 @@ app.post('/api/registration/id', async (req, res) => {
     res.status(400).json({ error: 'Enter a valid numeric PocketOption ID' });
     return;
   }
+  const poId = String(pocketOptionId);
+
+  // One PocketOption ID = one Telegram user. If another account already claimed
+  // this id (verified, or mid-verification), reject this attempt as a duplicate
+  // with a clear "already in use" card instead of unlocking the same account twice.
+  const taken = db
+    .prepare(
+      `SELECT tg_id FROM users WHERE pocket_option_id = ? AND tg_id != ? AND status IN ('verified','verifying')`
+    )
+    .get(poId, req.user.tg_id) as { tg_id: string } | undefined;
+  if (taken) {
+    db.prepare(
+      `UPDATE users SET status = 'rejected', verify_reject_reason = 'duplicate',
+         pocket_option_id = NULL, verify_started_at = NULL
+       WHERE tg_id = ?`
+    ).run(req.user.tg_id);
+    const rejected = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+    res.json(buildUserState(rejected));
+    return;
+  }
+
   db.prepare(
-    `UPDATE users SET pocket_option_id = ?, status = 'verifying', verify_started_at = ? WHERE tg_id = ?`
-  ).run(String(pocketOptionId), Date.now(), req.user.tg_id);
+    `UPDATE users SET pocket_option_id = ?, status = 'verifying', verify_started_at = ?, verify_reject_reason = NULL WHERE tg_id = ?`
+  ).run(poId, Date.now(), req.user.tg_id);
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
   const verified = await runVerification(fresh); // auto-accept if registered under us
   res.json(buildUserState(verified));
@@ -146,7 +167,7 @@ app.post('/api/registration/have-account', (req, res) => {
 app.post('/api/registration/reset', (req, res) => {
   db.prepare(
     `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
-       pocket_option_id = NULL, verify_started_at = NULL
+       pocket_option_id = NULL, verify_started_at = NULL, verify_reject_reason = NULL
      WHERE tg_id = ? AND status = 'rejected'`
   ).run(req.user.tg_id);
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { UserStatus } from '../api';
+import type { UserStatus, RejectReason } from '../api';
 import { WarningIcon, RefreshIcon, CheckIcon } from './Icons';
 import { openExternal } from '../telegram';
 import { useT } from '../useT';
@@ -8,6 +8,7 @@ interface Props {
   status: UserStatus;
   regStep: 'step1' | 'enterId';
   pocketOptionId: string | null;
+  rejectReason: RejectReason | null;
   refUrl: string;
   onOpenModal: () => void;
   onEnterIdLink: () => void;
@@ -20,6 +21,7 @@ export default function RegistrationCard({
   status,
   regStep,
   pocketOptionId,
+  rejectReason,
   refUrl,
   onOpenModal,
   onEnterIdLink,
@@ -75,8 +77,9 @@ export default function RegistrationCard({
     );
   }
 
-  // ---- Rejected: the submitted ID is not registered under our link ----
+  // ---- Rejected: either the ID isn't under our link, or it's already in use ----
   if (status === 'rejected' && regStep !== 'enterId') {
+    const isDuplicate = rejectReason === 'duplicate';
     return (
       <div className="card border-danger/30 bg-danger/5 p-5">
         <div className="flex items-start gap-3">
@@ -84,8 +87,12 @@ export default function RegistrationCard({
             <WarningIcon className="h-5 w-5" />
           </span>
           <div>
-            <div className="font-bold text-white">{t('reg.rejectedTitle')}</div>
-            <div className="mt-1 text-sm text-slate-300">{t('reg.rejectedText', { id: pocketOptionId ?? '' })}</div>
+            <div className="font-bold text-white">
+              {isDuplicate ? t('reg.dupTitle') : t('reg.rejectedTitle')}
+            </div>
+            <div className="mt-1 text-sm text-slate-300">
+              {isDuplicate ? t('reg.dupText') : t('reg.rejectedText', { id: pocketOptionId ?? '' })}
+            </div>
           </div>
         </div>
         <button onClick={() => openExternal(refUrl)} className="btn-cyan mt-4 w-full py-3 animate-pulse-glow">

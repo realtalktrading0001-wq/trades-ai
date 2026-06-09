@@ -28,6 +28,7 @@ db.exec(`
     ref_code          TEXT UNIQUE,
     referred_by       TEXT,
     verify_started_at INTEGER,
+    verify_reject_reason TEXT, -- not_found | duplicate (only set when status = 'rejected')
     created_at        INTEGER NOT NULL
   );
 
@@ -59,6 +60,14 @@ db.exec(`
   );
 `);
 
+// Migration: why a verify was rejected ('not_found' | 'duplicate'). Wrapped in
+// try/catch so upgrading an existing (production) DB doesn't fail if it exists.
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN verify_reject_reason TEXT`);
+} catch {
+  /* column already present */
+}
+
 export interface UserRow {
   tg_id: string;
   name: string | null;
@@ -70,6 +79,7 @@ export interface UserRow {
   ref_code: string;
   referred_by: string | null;
   verify_started_at: number | null;
+  verify_reject_reason: 'not_found' | 'duplicate' | null;
   created_at: number;
 }
 

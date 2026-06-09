@@ -169,12 +169,17 @@ export default function SignalsScreen() {
             status={user.status}
             regStep={regStep}
             pocketOptionId={user.pocketOptionId}
+            rejectReason={user.rejectReason}
             refUrl={config.pocketOptionRefUrl}
             onOpenModal={() => setModalOpen(true)}
             onEnterIdLink={() => setRegStep('enterId')}
             onBackToStep1={() => setRegStep('step1')}
             onSubmitId={async (id) => {
               const updated = await api.submitId(id);
+              // Leave the enterId sub-state so the verifying/rejected cards (and
+              // the auto-dismiss timer) take over — otherwise the form would
+              // swallow a 'rejected' result and the heads-up never shows.
+              setRegStep('step1');
               setUser(updated);
             }}
             onRefresh={verifyNow}

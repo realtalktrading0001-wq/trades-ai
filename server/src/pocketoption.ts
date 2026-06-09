@@ -78,8 +78,13 @@ export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResu
       const m = (data as Record<string, unknown>).message;
       if (typeof m === 'string') message = m;
     }
-    // 404 or an error body = the id is definitively not under our affiliate.
-    const notFound = res.status === 404 || res.status === 400 || isError === true;
+    // 404, an error body, or a "user not found"-style message = the id is
+    // definitively not under our affiliate (some responses 200 with an error msg).
+    const notFound =
+      res.status === 404 ||
+      res.status === 400 ||
+      isError === true ||
+      /not[\s_]?found/i.test(message);
     return { registered: false, notFound, depositAmount: 0, configured: true, raw: data, error: message };
   } catch (e) {
     // Network/timeout error — NOT a definitive rejection; let the caller retry.

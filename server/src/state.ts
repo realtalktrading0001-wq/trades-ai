@@ -7,10 +7,35 @@ const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
 const lastCheck = new Map<string, number>();
 const CHECK_INTERVAL_MS = 3000;
 
-function markVerified(user: UserRow, depositAmount: number): UserRow {
-  db.prepare(`UPDATE users SET status = 'verified', subscription = 'Active' WHERE tg_id = ?`).run(
-    user.tg_id
+/** Move a user to 'rejected' with a reason, and return the fresh row. */
+function rejectUser(tgId: string, reason: 'not_found' | 'duplicate'): UserRow {
+  db.prepare(`UPDATE users SET status = 'rejected', verify_reject_reason = ? WHERE tg_id = ?`).run(
+    reason,
+    tgId
   );
+  return db.prepare('SELECT * FROM users WHERE tg_id = ?').get(tgId) as unknown as UserRow;
+}
+
+/** Is this PocketOption id already *verified* on a different Telegram user? */
+function idVerifiedByAnother(pocketOptionId: string, tgId: string): boolean {
+  const row = db
+    .prepare(
+      `SELECT tg_id FROM users WHERE pocket_option_id = ? AND tg_id != ? AND status = 'verified'`
+    )
+    .get(pocketOptionId, tgId) as { tg_id: string } | undefined;
+  return !!row;
+}
+
+function markVerified(user: UserRow, depositAmount: number): UserRow {
+  // One PocketOption ID = one Telegram user. If another account already verified
+  // with this id (race past the submit-time check), reject this one as a duplicate
+  // instead of unlocking signals on the same broker account twice.
+  if (user.pocket_option_id && idVerifiedByAnother(user.pocket_option_id, user.tg_id)) {
+    return rejectUser(user.tg_id, 'duplicate');
+  }
+  db.prepare(
+    `UPDATE users SET status = 'verified', subscription = 'Active', verify_reject_reason = NULL WHERE tg_id = ?`
+  ).run(user.tg_id);
   // If this user was referred, credit the inviter (approved once they deposit enough).
   if (user.referred_by) {
     const approved = depositAmount >= MIN_DEPOSIT_USD ? 1 : 0;
@@ -48,17 +73,24 @@ export async function runVerification(user: UserRow): Promise<UserRow> {
   const result = await verifyPocketOptionId(user.pocket_option_id);
   if (result.registered) return markVerified(user, result.depositAmount);
 
+  const startedAt = user.verify_started_at ?? 0;
+
   // Definitive "not under our affiliate". Give a short grace window first so a
   // brand-new registration that hasn't propagated yet isn't falsely rejected,
   // then move to 'rejected' (the UI then tells them to register via our link).
-  if (result.notFound && user.verify_started_at) {
+  if (result.notFound && startedAt) {
     const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 8) * 1000;
-    if (Date.now() - user.verify_started_at >= graceMs) {
-      db.prepare(`UPDATE users SET status = 'rejected' WHERE tg_id = ?`).run(user.tg_id);
-      return db.prepare('SELECT * FROM users WHERE tg_id = ?').get(user.tg_id) as unknown as UserRow;
-    }
+    if (Date.now() - startedAt >= graceMs) return rejectUser(user.tg_id, 'not_found');
+    return user; // still within grace
   }
-  return user; // still within grace / transient error — stays "verifying"
+
+  // Safety net: never leave a user stuck on "Verifying…" forever. If the API has
+  // only thrown transient/network errors past the hard cap, reject so the heads-up
+  // card shows and they can retry — rather than spinning indefinitely.
+  const timeoutMs = (Number(process.env.VERIFY_TIMEOUT_SECONDS) || 30) * 1000;
+  if (startedAt && Date.now() - startedAt >= timeoutMs) return rejectUser(user.tg_id, 'not_found');
+
+  return user; // transient error within the cap — stays "verifying"
 }
 
 export function buildUserState(userRow: UserRow) {
@@ -70,6 +102,7 @@ export function buildUserState(userRow: UserRow) {
     name: userRow.name,
     pocketOptionId: userRow.pocket_option_id,
     status: userRow.status,
+    rejectReason: userRow.verify_reject_reason ?? null,
     subscription: userRow.subscription,
     timezone: userRow.timezone,
     language: userRow.language,

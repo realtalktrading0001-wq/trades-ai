@@ -16,7 +16,7 @@ const PORT = Number(process.env.PORT) || 4000;
 const POCKETOPTION_REF_URL =
   process.env.POCKETOPTION_REF_URL ?? 'https://pocketoption.com/?ref=YOUR_REF_CODE';
 const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE ?? 'Tradesaisupport';
-const WEEKLY_PRIZE_POOL = Number(process.env.WEEKLY_PRIZE_POOL) || 400;
+const DAILY_PRIZE_POOL = Number(process.env.DAILY_PRIZE_POOL) || 1000;
 
 const CURRENCY_PAIRS = [
   'EUR/USD-OTC',
@@ -79,7 +79,45 @@ const CURRENCY_PAIRS = [
 ];
 const EXPIRATIONS = ['5 sec', '15 sec', '30 sec', '1 min', '2 min', '3 min', '5 min'];
 
-const RANK_PRIZES = [150, 100, 75, 50, 25];
+const RANK_PRIZES = [400, 250, 150, 120, 80]; // sums to the $1000 daily pool
+
+// Seed names for the "Daily Leaderboard" — a mix of countries so a brand-new user
+// sees an active, believable board (and changing daily, never per-refresh, so it
+// doesn't look fake). Real referrers ("You") are merged in by their invite count.
+const LEADERBOARD_NAMES = [
+  'Rahul S.', 'Priya M.', 'Arjun K.', 'Ananya R.', 'Vikram P.', 'Sneha G.', 'Rohan D.',
+  'Aditya V.', 'Kavya N.', 'Michael B.', 'Jessica L.', 'David W.', 'Ashley T.', 'James C.',
+  'Emily H.', 'Chris M.', 'Sarah K.', 'Daniel R.', 'Megan P.', 'Carlos R.', 'María G.',
+  'Lucas F.', 'Sofía D.', 'João S.', 'Ana C.', 'Dmitri V.', 'Olga P.', 'Ahmed Z.',
+  'Fatima A.', 'Omar H.', 'Kwame O.', 'Chidi N.', 'Amara E.', 'Wei C.', 'Mei L.', 'Minh T.',
+];
+
+// Deterministic PRNG (mulberry32) so a given seed always yields the same sequence.
+function seededRandom(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Build the seeded fake leaderboard for the current UTC day.
+function dailyLeaderboard(count: number): { name: string; approved: number }[] {
+  const day = Math.floor(Date.now() / 86_400_000); // changes once per UTC day
+  const rand = seededRandom((day + 1) * 2654435761);
+  const names = [...LEADERBOARD_NAMES];
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [names[i], names[j]] = [names[j], names[i]];
+  }
+  let invites = 33 + Math.floor(rand() * 6); // rank 1: 33–38 invites
+  return names.slice(0, count).map((name, i) => {
+    if (i > 0) invites -= 3 + Math.floor(rand() * 4); // each rank drops 3–6
+    return { name, approved: Math.max(1, invites) };
+  });
+}
 
 // ---- Public config (no auth) -------------------------------------------------
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -223,7 +261,6 @@ app.post('/api/profile/settings', (req, res) => {
 // Referrals data
 app.get('/api/referrals', (req, res) => {
   const userId = req.user.tg_id;
-  const startOfWeek = getStartOfWeek();
   const invited = db
     .prepare('SELECT COUNT(*) AS c FROM referrals WHERE inviter_id = ?')
     .get(userId) as { c: number };
@@ -231,22 +268,19 @@ app.get('/api/referrals', (req, res) => {
     .prepare('SELECT COUNT(*) AS c FROM referrals WHERE inviter_id = ? AND approved = 1')
     .get(userId) as { c: number };
 
-  // Leaderboard: inviters ranked by approved referrals this week
-  const leaderboard = db
-    .prepare(
-      `SELECT inviter_id, COUNT(*) AS approved
-       FROM referrals
-       WHERE approved = 1 AND created_at >= ?
-       GROUP BY inviter_id
-       ORDER BY approved DESC
-       LIMIT 5`
-    )
-    .all(startOfWeek) as { inviter_id: string; approved: number }[];
+  // Daily leaderboard: seeded fake traders, with the real user ("You") merged in
+  // by their own approved-invite count if they have any. Ranks/prizes reassigned
+  // after the merge so positions and reward amounts always line up.
+  const entries: { name: string; approved: number; you: boolean }[] = dailyLeaderboard(5).map(
+    (e) => ({ ...e, you: false })
+  );
+  if (approved.c > 0) entries.push({ name: 'You', approved: approved.c, you: true });
+  const leaderboard = entries
+    .sort((a, b) => b.approved - a.approved)
+    .slice(0, RANK_PRIZES.length)
+    .map((e, i) => ({ rank: i + 1, name: e.name, approved: e.approved, prize: RANK_PRIZES[i] ?? 0, you: e.you }));
 
-  const rank =
-    leaderboard.findIndex((r) => r.inviter_id === userId) >= 0
-      ? leaderboard.findIndex((r) => r.inviter_id === userId) + 1
-      : null;
+  const rank = leaderboard.find((r) => r.you)?.rank ?? null;
 
   const friends = db
     .prepare(
@@ -258,19 +292,14 @@ app.get('/api/referrals', (req, res) => {
 
   res.json({
     inviteLink: buildUserState(req.user).inviteLink,
-    prizePool: WEEKLY_PRIZE_POOL,
+    prizePool: DAILY_PRIZE_POOL,
     rankPrizes: RANK_PRIZES,
-    weekEndsAt: getEndOfWeek(),
+    endsAt: getEndOfDay(),
     invited: invited.c,
     approved: approved.c,
     rank,
     needForPrize: Math.max(0, 3 - approved.c),
-    leaderboard: leaderboard.map((r, i) => ({
-      rank: i + 1,
-      name: r.inviter_id === userId ? 'You' : `Trader ${r.inviter_id.slice(-4)}`,
-      approved: r.approved,
-      prize: RANK_PRIZES[i] ?? 0,
-    })),
+    leaderboard,
     friends: friends.map((f) => ({
       name: f.name ?? `Friend ${f.invitee_id.slice(-4)}`,
       approved: !!f.approved,
@@ -304,7 +333,7 @@ app.get('/api/support/faq', (_req, res) => {
       },
       {
         q: 'How do referral prizes work?',
-        a: 'Invite friends with your link. Friends who register and deposit at least $15 count as approved. The top 5 referrers each week win balance rewards.',
+        a: 'Invite friends with your link. Friends who register and deposit at least $15 count as approved. The top 5 referrers each day win balance rewards.',
       },
     ],
   });
@@ -322,14 +351,10 @@ function stubbedAssistantReply(message: string): string {
   return 'Got it. Based on current market conditions I would wait for a confirmed signal before entering. Tap "Get Signal" on the Signals tab for a live read. 🤖';
 }
 
-function getStartOfWeek(): number {
+// Next UTC midnight — the daily giveaway countdown target (resets every day).
+function getEndOfDay(): number {
   const now = new Date();
-  const day = (now.getUTCDay() + 6) % 7; // Monday = 0
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - day));
-  return monday.getTime();
-}
-function getEndOfWeek(): number {
-  return getStartOfWeek() + 7 * 24 * 60 * 60 * 1000;
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0);
 }
 
 // Serve the built client (production / single-service deploy). The client calls

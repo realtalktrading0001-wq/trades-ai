@@ -55,12 +55,12 @@ export interface ReferralData {
   inviteLink: string;
   prizePool: number;
   rankPrizes: number[];
-  weekEndsAt: number;
+  endsAt: number;
   invited: number;
   approved: number;
   rank: number | null;
   needForPrize: number;
-  leaderboard: { rank: number; name: string; approved: number; prize: number }[];
+  leaderboard: { rank: number; name: string; approved: number; prize: number; you?: boolean }[];
   friends: { name: string; approved: boolean; deposit: number }[];
 }
 

@@ -30,7 +30,7 @@ export default function ReferralsScreen() {
         <div className="text-xs font-bold uppercase tracking-widest text-cyan">{t('ref.pool')}</div>
         <div className="mt-1 text-4xl font-black text-white">${data.prizePool}</div>
         <div className="mt-4 flex justify-center">
-          <Countdown target={data.weekEndsAt} />
+          <Countdown target={data.endsAt} />
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {data.rankPrizes.map((p, i) => (
@@ -98,13 +98,15 @@ export default function ReferralsScreen() {
             {data.leaderboard.map((r) => (
               <li
                 key={r.rank}
-                className="flex items-center justify-between rounded-lg bg-midnight-deep/60 px-3 py-2 text-sm"
+                className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+                  r.you ? 'bg-cyan/15 border border-cyan/40' : 'bg-midnight-deep/60'
+                }`}
               >
                 <span className="font-semibold text-slate-100">
                   #{r.rank} {r.name}
                 </span>
                 <span className="text-muted">
-                  {r.approved} {t('ref.approvedShort')} · <span className="text-cyan">${r.prize}</span>
+                  {r.approved} {t('ref.invitesShort')} · <span className="text-cyan">${r.prize}</span>
                 </span>
               </li>
             ))}

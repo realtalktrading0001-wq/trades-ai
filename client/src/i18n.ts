@@ -144,7 +144,7 @@ const en: Dict = {
   'sub.NotRegistered': 'Not registered',
 
   // referrals
-  'ref.pool': 'Weekly Prize Pool',
+  'ref.pool': 'Daily Giveaway',
   'ref.days': 'days',
   'ref.hrs': 'hrs',
   'ref.min': 'min',
@@ -156,14 +156,15 @@ const en: Dict = {
   'ref.invited': 'Invited',
   'ref.approved': 'Approved',
   'ref.rank': 'Rank',
-  'ref.need': 'Need {n} more approved friends this week to qualify for a prize.',
-  'ref.leaderboard': 'Weekly Leaderboard',
+  'ref.need': 'Need {n} more approved friends today to qualify for a prize.',
+  'ref.leaderboard': 'Daily Leaderboard',
   'ref.beFirst': 'Be the first!',
   'ref.climb': 'Invite friends to climb the leaderboard.',
   'ref.myFriends': 'My Friends',
   'ref.noFriends': 'No friends invited yet. Share your link to get started.',
   'ref.pending': 'Pending',
   'ref.approvedShort': 'approved',
+  'ref.invitesShort': 'invites',
   'ref.rules': 'Rules & Anti-Abuse',
   'ref.rule1': 'Deposit ≥ $15 to count as approved.',
   'ref.rule2': 'Top 5 referrers win balance rewards.',
@@ -192,7 +193,7 @@ const en: Dict = {
   'sup.q3': 'How accurate are the signals?',
   'sup.a3': 'Our AI reports 90%+ accuracy on strong trends. No signal is guaranteed — always manage your risk.',
   'sup.q4': 'How do referral prizes work?',
-  'sup.a4': 'Invite friends with your link. Friends who register and deposit at least $15 count as approved. The top 5 referrers each week win balance rewards.',
+  'sup.a4': 'Invite friends with your link. Friends who register and deposit at least $15 count as approved. The top 5 referrers each day win balance rewards.',
 };
 
 const hi: Dict = {
@@ -235,12 +236,12 @@ const hi: Dict = {
   'prof.registerPO': 'PocketOption पर रजिस्टर करें', 'prof.total': 'कुल', 'prof.taken': 'लिए', 'prof.skipped': 'छोड़े',
   'prof.settings': 'सेटिंग्स', 'prof.timezone': 'टाइमज़ोन', 'prof.language': 'भाषा', 'prof.trader': 'ट्रेडर',
   'sub.Active': 'सक्रिय', 'sub.NotRegistered': 'रजिस्टर नहीं',
-  'ref.pool': 'साप्ताहिक इनाम राशि', 'ref.days': 'दिन', 'ref.hrs': 'घंटे', 'ref.min': 'मिनट', 'ref.sec': 'सेकंड',
+  'ref.pool': 'दैनिक इनाम', 'ref.days': 'दिन', 'ref.hrs': 'घंटे', 'ref.min': 'मिनट', 'ref.sec': 'सेकंड',
   'ref.inviteLink': 'आपका इन्वाइट लिंक', 'ref.share': 'शेयर', 'ref.copy': 'कॉपी', 'ref.copied': 'कॉपी हुआ!',
-  'ref.invited': 'आमंत्रित', 'ref.approved': 'स्वीकृत', 'ref.rank': 'रैंक', 'ref.need': 'इनाम के लिए इस सप्ताह {n} और स्वीकृत मित्र चाहिए।',
-  'ref.leaderboard': 'साप्ताहिक लीडरबोर्ड', 'ref.beFirst': 'पहले बनें!', 'ref.climb': 'लीडरबोर्ड पर चढ़ने के लिए मित्रों को आमंत्रित करें।',
+  'ref.invited': 'आमंत्रित', 'ref.approved': 'स्वीकृत', 'ref.rank': 'रैंक', 'ref.need': 'इनाम के लिए आज {n} और स्वीकृत मित्र चाहिए।',
+  'ref.leaderboard': 'दैनिक लीडरबोर्ड', 'ref.beFirst': 'पहले बनें!', 'ref.climb': 'लीडरबोर्ड पर चढ़ने के लिए मित्रों को आमंत्रित करें।',
   'ref.myFriends': 'मेरे मित्र', 'ref.noFriends': 'अभी कोई मित्र आमंत्रित नहीं। शुरू करने के लिए अपना लिंक शेयर करें।',
-  'ref.pending': 'लंबित', 'ref.approvedShort': 'स्वीकृत', 'ref.rules': 'नियम और दुरुपयोग रोकथाम',
+  'ref.pending': 'लंबित', 'ref.approvedShort': 'स्वीकृत', 'ref.invitesShort': 'आमंत्रण', 'ref.rules': 'नियम और दुरुपयोग रोकथाम',
   'ref.rule1': 'स्वीकृत गिनने के लिए ≥ $15 जमा करें।', 'ref.rule2': 'टॉप 5 रेफ़रर बैलेंस इनाम जीतते हैं।',
   'ref.rule3': 'आमंत्रित मित्रों को सक्रिय रूप से ट्रेड करना होगा; स्वयं-रेफ़रल/मल्टी-अकाउंट नहीं गिने जाते।',
   'ref.shareText': 'Trades AI पर मुफ़्त ट्रेडिंग सिग्नल के लिए मेरे साथ जुड़ें! 🚀',
@@ -252,7 +253,7 @@ const hi: Dict = {
   'sup.q1': 'मैं सिग्नल कैसे अनलॉक करूँ?', 'sup.a1': 'हमारे लिंक से PocketOption अकाउंट रजिस्टर करें, फिर अपना PocketOption ID डालें। सत्यापन स्वचालित है और आमतौर पर कुछ सेकंड लेता है।',
   'sup.q2': 'मुझे आपका लिंक क्यों इस्तेमाल करना है?', 'sup.a2': 'बॉट मुफ़्त है क्योंकि हम पार्टनर ब्रोकर से ट्रेडिंग वॉल्यूम का छोटा हिस्सा कमाते हैं। यह तभी काम करता है जब आपका अकाउंट हमसे लिंक हो।',
   'sup.q3': 'सिग्नल कितने सटीक हैं?', 'sup.a3': 'हमारा AI मज़बूत ट्रेंड पर 90%+ सटीकता बताता है। कोई सिग्नल गारंटीड नहीं — हमेशा जोखिम संभालें।',
-  'sup.q4': 'रेफ़रल इनाम कैसे काम करते हैं?', 'sup.a4': 'अपने लिंक से मित्रों को आमंत्रित करें। जो मित्र रजिस्टर कर कम से कम $15 जमा करते हैं वे स्वीकृत गिने जाते हैं। हर सप्ताह टॉप 5 रेफ़रर बैलेंस इनाम जीतते हैं।',
+  'sup.q4': 'रेफ़रल इनाम कैसे काम करते हैं?', 'sup.a4': 'अपने लिंक से मित्रों को आमंत्रित करें। जो मित्र रजिस्टर कर कम से कम $15 जमा करते हैं वे स्वीकृत गिने जाते हैं। हर दिन टॉप 5 रेफ़रर बैलेंस इनाम जीतते हैं।',
 };
 
 const es: Dict = {
@@ -295,12 +296,12 @@ const es: Dict = {
   'prof.registerPO': 'Registrarse en PocketOption', 'prof.total': 'Total', 'prof.taken': 'Tomadas', 'prof.skipped': 'Omitidas',
   'prof.settings': 'Ajustes', 'prof.timezone': 'Zona horaria', 'prof.language': 'Idioma', 'prof.trader': 'Trader',
   'sub.Active': 'Activa', 'sub.NotRegistered': 'No registrado',
-  'ref.pool': 'Premio Semanal', 'ref.days': 'días', 'ref.hrs': 'hrs', 'ref.min': 'min', 'ref.sec': 'seg',
+  'ref.pool': 'Sorteo Diario', 'ref.days': 'días', 'ref.hrs': 'hrs', 'ref.min': 'min', 'ref.sec': 'seg',
   'ref.inviteLink': 'Tu enlace de invitación', 'ref.share': 'Compartir', 'ref.copy': 'Copiar', 'ref.copied': '¡Copiado!',
-  'ref.invited': 'Invitados', 'ref.approved': 'Aprobados', 'ref.rank': 'Rango', 'ref.need': 'Necesitas {n} amigos aprobados más esta semana para ganar un premio.',
-  'ref.leaderboard': 'Clasificación Semanal', 'ref.beFirst': '¡Sé el primero!', 'ref.climb': 'Invita amigos para subir en la clasificación.',
+  'ref.invited': 'Invitados', 'ref.approved': 'Aprobados', 'ref.rank': 'Rango', 'ref.need': 'Necesitas {n} amigos aprobados más hoy para ganar un premio.',
+  'ref.leaderboard': 'Clasificación Diaria', 'ref.beFirst': '¡Sé el primero!', 'ref.climb': 'Invita amigos para subir en la clasificación.',
   'ref.myFriends': 'Mis Amigos', 'ref.noFriends': 'Aún no hay amigos invitados. Comparte tu enlace para empezar.',
-  'ref.pending': 'Pendiente', 'ref.approvedShort': 'aprobados', 'ref.rules': 'Reglas y Anti-abuso',
+  'ref.pending': 'Pendiente', 'ref.approvedShort': 'aprobados', 'ref.invitesShort': 'invitados', 'ref.rules': 'Reglas y Anti-abuso',
   'ref.rule1': 'Deposita ≥ $15 para contar como aprobado.', 'ref.rule2': 'Los 5 mejores referidores ganan recompensas de saldo.',
   'ref.rule3': 'Los amigos invitados deben operar activamente; auto-referidos / multicuentas no cuentan.',
   'ref.shareText': '¡Únete a mí en Trades AI para señales de trading gratis! 🚀',
@@ -312,7 +313,7 @@ const es: Dict = {
   'sup.q1': '¿Cómo desbloqueo las señales?', 'sup.a1': 'Registra una cuenta de PocketOption con nuestro enlace y envía tu ID de PocketOption. La verificación es automática y suele tomar unos segundos.',
   'sup.q2': '¿Por qué debo usar tu enlace?', 'sup.a2': 'El bot es gratis porque ganamos una pequeña parte del volumen de trading del bróker socio. Eso solo funciona si tu cuenta está vinculada con nosotros.',
   'sup.q3': '¿Qué tan precisas son las señales?', 'sup.a3': 'Nuestra IA reporta 90%+ de precisión en tendencias fuertes. Ninguna señal está garantizada — gestiona siempre tu riesgo.',
-  'sup.q4': '¿Cómo funcionan los premios por referidos?', 'sup.a4': 'Invita amigos con tu enlace. Los amigos que se registren y depositen al menos $15 cuentan como aprobados. Los 5 mejores referidores cada semana ganan recompensas de saldo.',
+  'sup.q4': '¿Cómo funcionan los premios por referidos?', 'sup.a4': 'Invita amigos con tu enlace. Los amigos que se registren y depositen al menos $15 cuentan como aprobados. Los 5 mejores referidores cada día ganan recompensas de saldo.',
 };
 
 const pt: Dict = {
@@ -355,12 +356,12 @@ const pt: Dict = {
   'prof.registerPO': 'Registrar na PocketOption', 'prof.total': 'Total', 'prof.taken': 'Aceitas', 'prof.skipped': 'Puladas',
   'prof.settings': 'Configurações', 'prof.timezone': 'Fuso horário', 'prof.language': 'Idioma', 'prof.trader': 'Trader',
   'sub.Active': 'Ativa', 'sub.NotRegistered': 'Não registrado',
-  'ref.pool': 'Prêmio Semanal', 'ref.days': 'dias', 'ref.hrs': 'h', 'ref.min': 'min', 'ref.sec': 'seg',
+  'ref.pool': 'Sorteio Diário', 'ref.days': 'dias', 'ref.hrs': 'h', 'ref.min': 'min', 'ref.sec': 'seg',
   'ref.inviteLink': 'Seu link de convite', 'ref.share': 'Compartilhar', 'ref.copy': 'Copiar', 'ref.copied': 'Copiado!',
-  'ref.invited': 'Convidados', 'ref.approved': 'Aprovados', 'ref.rank': 'Posição', 'ref.need': 'Precisa de {n} amigos aprovados esta semana para ganhar um prêmio.',
-  'ref.leaderboard': 'Ranking Semanal', 'ref.beFirst': 'Seja o primeiro!', 'ref.climb': 'Convide amigos para subir no ranking.',
+  'ref.invited': 'Convidados', 'ref.approved': 'Aprovados', 'ref.rank': 'Posição', 'ref.need': 'Precisa de {n} amigos aprovados hoje para ganhar um prêmio.',
+  'ref.leaderboard': 'Ranking Diário', 'ref.beFirst': 'Seja o primeiro!', 'ref.climb': 'Convide amigos para subir no ranking.',
   'ref.myFriends': 'Meus Amigos', 'ref.noFriends': 'Nenhum amigo convidado ainda. Compartilhe seu link para começar.',
-  'ref.pending': 'Pendente', 'ref.approvedShort': 'aprovados', 'ref.rules': 'Regras e Anti-abuso',
+  'ref.pending': 'Pendente', 'ref.approvedShort': 'aprovados', 'ref.invitesShort': 'convites', 'ref.rules': 'Regras e Anti-abuso',
   'ref.rule1': 'Deposite ≥ $15 para contar como aprovado.', 'ref.rule2': 'Os 5 melhores indicadores ganham recompensas de saldo.',
   'ref.rule3': 'Amigos convidados devem operar ativamente; auto-indicações / multicontas não contam.',
   'ref.shareText': 'Junte-se a mim no Trades AI para sinais de trading grátis! 🚀',
@@ -372,7 +373,7 @@ const pt: Dict = {
   'sup.q1': 'Como desbloqueio os sinais?', 'sup.a1': 'Registre uma conta PocketOption com nosso link e envie seu ID da PocketOption. A verificação é automática e geralmente leva alguns segundos.',
   'sup.q2': 'Por que preciso usar seu link?', 'sup.a2': 'O bot é grátis porque ganhamos uma pequena parte do volume de trading do corretor parceiro. Isso só funciona se sua conta estiver vinculada a nós.',
   'sup.q3': 'Quão precisos são os sinais?', 'sup.a3': 'Nossa IA reporta 90%+ de precisão em tendências fortes. Nenhum sinal é garantido — sempre gerencie seu risco.',
-  'sup.q4': 'Como funcionam os prêmios de indicação?', 'sup.a4': 'Convide amigos com seu link. Amigos que se registram e depositam pelo menos $15 contam como aprovados. Os 5 melhores indicadores a cada semana ganham recompensas de saldo.',
+  'sup.q4': 'Como funcionam os prêmios de indicação?', 'sup.a4': 'Convide amigos com seu link. Amigos que se registram e depositam pelo menos $15 contam como aprovados. Os 5 melhores indicadores a cada dia ganham recompensas de saldo.',
 };
 
 const ru: Dict = {
@@ -415,12 +416,12 @@ const ru: Dict = {
   'prof.registerPO': 'Регистрация в PocketOption', 'prof.total': 'Всего', 'prof.taken': 'Взято', 'prof.skipped': 'Пропущено',
   'prof.settings': 'Настройки', 'prof.timezone': 'Часовой пояс', 'prof.language': 'Язык', 'prof.trader': 'Трейдер',
   'sub.Active': 'Активна', 'sub.NotRegistered': 'Не зарегистрирован',
-  'ref.pool': 'Недельный призовой фонд', 'ref.days': 'дн', 'ref.hrs': 'ч', 'ref.min': 'мин', 'ref.sec': 'сек',
+  'ref.pool': 'Ежедневный розыгрыш', 'ref.days': 'дн', 'ref.hrs': 'ч', 'ref.min': 'мин', 'ref.sec': 'сек',
   'ref.inviteLink': 'Ваша пригласительная ссылка', 'ref.share': 'Поделиться', 'ref.copy': 'Копировать', 'ref.copied': 'Скопировано!',
-  'ref.invited': 'Приглашено', 'ref.approved': 'Одобрено', 'ref.rank': 'Ранг', 'ref.need': 'Нужно ещё {n} одобренных друзей на этой неделе для приза.',
-  'ref.leaderboard': 'Недельный рейтинг', 'ref.beFirst': 'Будьте первым!', 'ref.climb': 'Приглашайте друзей, чтобы подняться в рейтинге.',
+  'ref.invited': 'Приглашено', 'ref.approved': 'Одобрено', 'ref.rank': 'Ранг', 'ref.need': 'Нужно ещё {n} одобренных друзей сегодня для приза.',
+  'ref.leaderboard': 'Ежедневный рейтинг', 'ref.beFirst': 'Будьте первым!', 'ref.climb': 'Приглашайте друзей, чтобы подняться в рейтинге.',
   'ref.myFriends': 'Мои друзья', 'ref.noFriends': 'Пока нет приглашённых друзей. Поделитесь ссылкой, чтобы начать.',
-  'ref.pending': 'Ожидание', 'ref.approvedShort': 'одобрено', 'ref.rules': 'Правила и анти-абуз',
+  'ref.pending': 'Ожидание', 'ref.approvedShort': 'одобрено', 'ref.invitesShort': 'приглашений', 'ref.rules': 'Правила и анти-абуз',
   'ref.rule1': 'Депозит ≥ $15, чтобы считаться одобренным.', 'ref.rule2': 'Топ-5 рефереров получают балансовые награды.',
   'ref.rule3': 'Приглашённые должны активно торговать; само-рефералы / мультиаккаунты не считаются.',
   'ref.shareText': 'Присоединяйся ко мне в Trades AI — бесплатные торговые сигналы! 🚀',
@@ -432,7 +433,7 @@ const ru: Dict = {
   'sup.q1': 'Как разблокировать сигналы?', 'sup.a1': 'Зарегистрируйте аккаунт PocketOption по нашей ссылке и отправьте ваш ID. Проверка автоматическая и обычно занимает несколько секунд.',
   'sup.q2': 'Почему нужна ваша ссылка?', 'sup.a2': 'Бот бесплатный, потому что мы получаем небольшую долю от торгового объёма у брокера-партнёра. Это работает, только если аккаунт привязан к нам.',
   'sup.q3': 'Насколько точны сигналы?', 'sup.a3': 'Наш ИИ показывает 90%+ точность на сильных трендах. Ни один сигнал не гарантирован — всегда управляйте риском.',
-  'sup.q4': 'Как работают призы за рефералов?', 'sup.a4': 'Приглашайте друзей по ссылке. Друзья, которые регистрируются и вносят не менее $15, считаются одобренными. Топ-5 рефереров каждую неделю получают балансовые награды.',
+  'sup.q4': 'Как работают призы за рефералов?', 'sup.a4': 'Приглашайте друзей по ссылке. Друзья, которые регистрируются и вносят не менее $15, считаются одобренными. Топ-5 рефереров каждый день получают балансовые награды.',
 };
 
 const ar: Dict = {
@@ -475,12 +476,12 @@ const ar: Dict = {
   'prof.registerPO': 'التسجيل في PocketOption', 'prof.total': 'الإجمالي', 'prof.taken': 'مأخوذة', 'prof.skipped': 'متخطّاة',
   'prof.settings': 'الإعدادات', 'prof.timezone': 'المنطقة الزمنية', 'prof.language': 'اللغة', 'prof.trader': 'متداول',
   'sub.Active': 'نشط', 'sub.NotRegistered': 'غير مسجّل',
-  'ref.pool': 'جائزة أسبوعية', 'ref.days': 'يوم', 'ref.hrs': 'ساعة', 'ref.min': 'دقيقة', 'ref.sec': 'ثانية',
+  'ref.pool': 'السحب اليومي', 'ref.days': 'يوم', 'ref.hrs': 'ساعة', 'ref.min': 'دقيقة', 'ref.sec': 'ثانية',
   'ref.inviteLink': 'رابط دعوتك', 'ref.share': 'مشاركة', 'ref.copy': 'نسخ', 'ref.copied': 'تم النسخ!',
-  'ref.invited': 'مدعوون', 'ref.approved': 'موافق عليهم', 'ref.rank': 'المرتبة', 'ref.need': 'تحتاج {n} أصدقاء معتمدين إضافيين هذا الأسبوع للفوز بجائزة.',
-  'ref.leaderboard': 'المتصدرون أسبوعيًا', 'ref.beFirst': 'كن الأول!', 'ref.climb': 'ادعُ أصدقاءك للصعود في القائمة.',
+  'ref.invited': 'مدعوون', 'ref.approved': 'موافق عليهم', 'ref.rank': 'المرتبة', 'ref.need': 'تحتاج {n} أصدقاء معتمدين إضافيين اليوم للفوز بجائزة.',
+  'ref.leaderboard': 'المتصدرون يوميًا', 'ref.beFirst': 'كن الأول!', 'ref.climb': 'ادعُ أصدقاءك للصعود في القائمة.',
   'ref.myFriends': 'أصدقائي', 'ref.noFriends': 'لا أصدقاء مدعوون بعد. شارك رابطك للبدء.',
-  'ref.pending': 'قيد الانتظار', 'ref.approvedShort': 'معتمد', 'ref.rules': 'القواعد ومكافحة الاحتيال',
+  'ref.pending': 'قيد الانتظار', 'ref.approvedShort': 'معتمد', 'ref.invitesShort': 'دعوات', 'ref.rules': 'القواعد ومكافحة الاحتيال',
   'ref.rule1': 'أودِع ≥ 15$ ليُحتسب معتمدًا.', 'ref.rule2': 'أفضل 5 محيلين يربحون مكافآت رصيد.',
   'ref.rule3': 'يجب أن يتداول الأصدقاء المدعوون فعليًا؛ الإحالات الذاتية / الحسابات المتعددة لا تُحتسب.',
   'ref.shareText': 'انضم إليّ في Trades AI لإشارات تداول مجانية! 🚀',
@@ -492,7 +493,7 @@ const ar: Dict = {
   'sup.q1': 'كيف أفتح الإشارات؟', 'sup.a1': 'سجّل حساب PocketOption عبر رابطنا ثم أرسل معرّفك. التحقق تلقائي ويستغرق عادة بضع ثوانٍ.',
   'sup.q2': 'لماذا يجب استخدام رابطك؟', 'sup.a2': 'البوت مجاني لأننا نربح حصة صغيرة من حجم التداول لدى الوسيط الشريك. هذا يعمل فقط إذا كان حسابك مرتبطًا بنا.',
   'sup.q3': 'ما مدى دقة الإشارات؟', 'sup.a3': 'يبلّغ ذكاؤنا عن دقة 90%+ على الاتجاهات القوية. لا إشارة مضمونة — أدِر مخاطرك دائمًا.',
-  'sup.q4': 'كيف تعمل جوائز الإحالة؟', 'sup.a4': 'ادعُ أصدقاءك برابطك. الأصدقاء الذين يسجّلون ويودعون 15$ على الأقل يُحتسبون معتمدين. أفضل 5 محيلين كل أسبوع يربحون مكافآت رصيد.',
+  'sup.q4': 'كيف تعمل جوائز الإحالة؟', 'sup.a4': 'ادعُ أصدقاءك برابطك. الأصدقاء الذين يسجّلون ويودعون 15$ على الأقل يُحتسبون معتمدين. أفضل 5 محيلين كل يوم يربحون مكافآت رصيد.',
 };
 
 const DICTS: Record<LangCode, Dict> = { en, hi, es, pt, ru, ar };

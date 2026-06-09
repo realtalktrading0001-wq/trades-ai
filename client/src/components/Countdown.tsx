@@ -28,7 +28,8 @@ export default function Countdown({ target }: { target: number }) {
   );
   return (
     <div className="flex items-center gap-2">
-      {cell(d, t('ref.days'))}
+      {/* Hide the DAYS box when there are none left (e.g. the daily giveaway). */}
+      {d > 0 && cell(d, t('ref.days'))}
       {cell(h, t('ref.hrs'))}
       {cell(m, t('ref.min'))}
       {cell(s, t('ref.sec'))}

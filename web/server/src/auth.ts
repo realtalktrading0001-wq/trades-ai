@@ -71,9 +71,9 @@ function ensureUser(email: string, refCode?: string): UserRow {
     }
     const name = email.split('@')[0] || 'Trader';
     db.prepare(
-      `INSERT INTO users (tg_id, name, email, ref_code, referred_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(id, name, email, code, referredBy, Date.now());
+      `INSERT INTO users (tg_id, name, email, timezone, ref_code, referred_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, name, email, 'UTC+00:00', code, referredBy, Date.now());
     db.prepare('INSERT INTO stats (user_id) VALUES (?)').run(id);
     if (referredBy) {
       db.prepare(

@@ -63,6 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               /* ignore */
             }
           }
+          localStorage.setItem('signalai_logged_in', '1'); // returning user — skip the welcome slides
           setUser(usr);
         } catch {
           clearToken(); // stale/invalid token — fall back to the login screen
@@ -80,6 +81,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   function login(token: string, usr: UserState) {
     setToken(token);
     clearRefCode(); // referral is now consumed
+    localStorage.setItem('signalai_logged_in', '1'); // first login — welcome slides won't show again
     setUser(usr);
   }
 

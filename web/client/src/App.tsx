@@ -9,16 +9,16 @@ import ReferralsScreen from './screens/ReferralsScreen';
 import AssistantScreen from './screens/AssistantScreen';
 import SupportScreen from './screens/SupportScreen';
 
-const ONBOARDED_KEY = 'signalai_onboarded';
+// Persisted once the user logs in for the first time. Until then, the welcome
+// slides show on every visit (so first-time visitors always get the intro).
+const LOGGED_IN_KEY = 'signalai_logged_in';
 
 export default function App() {
   const { tab, loading, error, user } = useApp();
-  const [onboarded, setOnboarded] = useState(() => localStorage.getItem(ONBOARDED_KEY) === '1');
-
-  function finishOnboarding() {
-    localStorage.setItem(ONBOARDED_KEY, '1');
-    setOnboarded(true);
-  }
+  const hasLoggedIn = localStorage.getItem(LOGGED_IN_KEY) === '1';
+  // Dismissed for THIS visit only (in-memory, resets on reload) so a not-yet-
+  // logged-in visitor sees the welcome slides again the next time they open the site.
+  const [skipOnboarding, setSkipOnboarding] = useState(false);
 
   if (loading) {
     return (
@@ -40,7 +40,10 @@ export default function App() {
     );
   }
 
-  if (!onboarded) return <OnboardingCarousel onDone={finishOnboarding} />;
+  // Welcome carousel: shown on every visit until the user has logged in once.
+  if (!hasLoggedIn && !user && !skipOnboarding) {
+    return <OnboardingCarousel onDone={() => setSkipOnboarding(true)} />;
+  }
 
   // No session yet → email login (the website's gate; the mini app used Telegram).
   if (!user) return <LoginScreen />;

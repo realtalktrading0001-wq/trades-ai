@@ -62,9 +62,9 @@ function ensureUser(tgId: string, name: string, startParam?: string): UserRow {
       }
     }
     db.prepare(
-      `INSERT INTO users (tg_id, name, ref_code, referred_by, created_at)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(tgId, name, code, referredBy, Date.now());
+      `INSERT INTO users (tg_id, name, timezone, ref_code, referred_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(tgId, name, 'UTC+00:00', code, referredBy, Date.now());
     db.prepare('INSERT INTO stats (user_id) VALUES (?)').run(tgId);
     if (referredBy) {
       db.prepare(

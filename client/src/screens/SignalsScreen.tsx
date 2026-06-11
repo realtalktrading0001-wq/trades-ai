@@ -10,10 +10,12 @@ import { ClockIcon, LightningIcon, MoonIcon, SunIcon } from '../components/Icons
 import { haptic } from '../telegram';
 import { useT } from '../useT';
 
-function PairFlag() {
+function PairFlag({ pair }: { pair: string }) {
+  const [base, quote] = pair.split('/');
+  const code = ((base?.[0] ?? '') + (quote?.[0] ?? '')).toUpperCase();
   return (
     <span className="flex h-5 w-7 items-center justify-center rounded-[5px] bg-gradient-to-br from-[#244cff] to-[#071b74] text-[10px] font-bold shadow-sm">
-      EU
+      {code}
     </span>
   );
 }
@@ -193,7 +195,7 @@ export default function SignalsScreen() {
           options={config.currencyPairs}
           onChange={changePair}
           disabled={locked}
-          prefix={<PairFlag />}
+          prefix={<PairFlag pair={pair} />}
           buttonClassName="h-[48px] rounded-[14px] border text-[15px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
           menuClassName="min-w-[210px]"
         />

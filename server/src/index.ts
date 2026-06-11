@@ -79,6 +79,49 @@ const CURRENCY_PAIRS = [
 ];
 const EXPIRATIONS = ['5 sec', '15 sec', '30 sec', '1 min', '2 min', '3 min', '5 min'];
 
+// Full UTC timezone list (−12 → +14, incl. half/quarter-hour zones). The label
+// format "UTC±H[:MM] (Place)" is parsed by client/time.ts for the signal clock.
+const TIMEZONES = [
+  'UTC-12 (Baker Island)',
+  'UTC-11 (American Samoa)',
+  'UTC-10 (Hawaii)',
+  'UTC-9:30 (Marquesas)',
+  'UTC-9 (Alaska)',
+  'UTC-8 (Los Angeles)',
+  'UTC-7 (Denver)',
+  'UTC-6 (Mexico City)',
+  'UTC-5 (New York)',
+  'UTC-4 (Caracas)',
+  'UTC-3:30 (Newfoundland)',
+  'UTC-3 (São Paulo)',
+  'UTC-2 (South Georgia)',
+  'UTC-1 (Azores)',
+  'UTC+0 (London)',
+  'UTC+1 (Berlin)',
+  'UTC+2 (Cairo)',
+  'UTC+3 (Moscow)',
+  'UTC+3:30 (Tehran)',
+  'UTC+4 (Dubai)',
+  'UTC+4:30 (Kabul)',
+  'UTC+5 (Pakistan)',
+  'UTC+5:30 (India)',
+  'UTC+5:45 (Nepal)',
+  'UTC+6 (Bangladesh)',
+  'UTC+6:30 (Myanmar)',
+  'UTC+7 (Bangkok)',
+  'UTC+8 (Singapore)',
+  'UTC+8:45 (Eucla)',
+  'UTC+9 (Tokyo)',
+  'UTC+9:30 (Adelaide)',
+  'UTC+10 (Sydney)',
+  'UTC+10:30 (Lord Howe)',
+  'UTC+11 (Solomon Islands)',
+  'UTC+12 (Auckland)',
+  'UTC+12:45 (Chatham)',
+  'UTC+13 (Samoa)',
+  'UTC+14 (Kiritimati)',
+];
+
 const RANK_PRIZES = [400, 250, 150, 120, 80]; // sums to the $1000 daily pool
 
 // Seed names for the "Daily Leaderboard" — a mix of countries so a brand-new user
@@ -128,15 +171,7 @@ app.get('/api/config', (_req, res) => {
     supportHandle: SUPPORT_HANDLE,
     currencyPairs: CURRENCY_PAIRS,
     expirations: EXPIRATIONS,
-    timezones: [
-      'UTC+0 (Lagos)',
-      'UTC+1 (Berlin)',
-      'UTC+2 (Cairo)',
-      'UTC+3 (Moscow)',
-      'UTC+5:30 (Mumbai)',
-      'UTC-5 (New York)',
-      'UTC-8 (Los Angeles)',
-    ],
+    timezones: TIMEZONES,
     languages: ['English', 'हिन्दी', 'Español', 'Português', 'Русский', 'العربية'],
   });
 });

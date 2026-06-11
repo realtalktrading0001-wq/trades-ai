@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../state/AppContext';
 import { api } from '../api';
 import { getRefCode, openExternal } from '../telegram';
-import { SupportIcon } from '../components/Icons';
+import { SupportIcon, SunIcon, MoonIcon } from '../components/Icons';
 
 const RESEND_SECONDS = 30;
 
 // Email + 6-digit code login (the website's replacement for Telegram auth).
 export default function LoginScreen() {
-  const { login, config } = useApp();
+  const { login, config, theme, toggleTheme } = useApp();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -65,9 +65,20 @@ export default function LoginScreen() {
 
   return (
     <div
-      className="flex items-center justify-center px-4 py-6"
+      className="relative flex items-center justify-center px-4 py-6"
       style={{ minHeight: '100dvh' }}
     >
+      {/* Theme toggle (same as the Signals tab) */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border transition hover:opacity-80"
+        style={{ color: 'var(--app-strong)', borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      >
+        {theme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+      </button>
+
       <div className="card w-full max-w-sm p-7">
         {/* Brand */}
         <div className="text-center">

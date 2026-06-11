@@ -48,7 +48,7 @@ export default function SignalsScreen() {
 
   useEffect(() => {
     if (user?.status !== 'verifying') return;
-    const id = setInterval(verifyNow, 3000);
+    const id = setInterval(verifyNow, 1500);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.status]);

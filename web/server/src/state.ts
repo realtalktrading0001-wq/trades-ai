@@ -13,7 +13,7 @@ export const REVOKE_BALANCE = Number(process.env.REVOKE_BALANCE_USD) || 5;
 // Per-user throttle so polling doesn't hammer the PocketOption API. Verified
 // users are re-checked less often (we're only watching for a balance drop).
 const lastCheck = new Map<string, number>();
-const CHECK_INTERVAL_MS = 3000;
+const CHECK_INTERVAL_MS = 1500;
 const VERIFIED_RECHECK_MS = 30000;
 
 type RejectReason = 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped';
@@ -112,13 +112,13 @@ export async function runVerification(user: UserRow): Promise<UserRow> {
   // Definitive "not under our affiliate". Give a short grace window first so a
   // brand-new registration that hasn't propagated yet isn't falsely rejected.
   if (result.notFound && startedAt) {
-    const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 8) * 1000;
+    const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 4) * 1000;
     if (Date.now() - startedAt >= graceMs) return setRejected(user.tg_id, 'not_found');
     return user; // still within grace
   }
 
   // Safety net: never leave a user stuck on "Verifying…" forever.
-  const timeoutMs = (Number(process.env.VERIFY_TIMEOUT_SECONDS) || 30) * 1000;
+  const timeoutMs = (Number(process.env.VERIFY_TIMEOUT_SECONDS) || 15) * 1000;
   if (startedAt && Date.now() - startedAt >= timeoutMs) return setRejected(user.tg_id, 'not_found');
 
   return user; // transient error within the cap — stays "verifying"

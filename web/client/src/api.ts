@@ -1,0 +1,120 @@
+import { getToken } from './telegram';
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string>),
+  };
+  const res = await fetch(path, { ...options, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+// ---- Types shared with the backend ------------------------------------------
+export type UserStatus = 'unregistered' | 'verifying' | 'verified' | 'rejected';
+export type RejectReason = 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped';
+
+export interface UserState {
+  id: string;
+  name: string | null;
+  email: string | null;
+  pocketOptionId: string | null;
+  status: UserStatus;
+  rejectReason: RejectReason | null;
+  subscription: string;
+  timezone: string;
+  language: string;
+  refCode: string;
+  inviteLink: string;
+  stats: { total: number; taken: number; skipped: number };
+}
+
+export interface AppConfig {
+  pocketOptionRefUrl: string;
+  supportHandle: string;
+  currencyPairs: string[];
+  expirations: string[];
+  timezones: string[];
+  languages: string[];
+  accessMinBalance: number;
+  revokeBalance: number;
+}
+
+export interface Signal {
+  pair: string;
+  expiration: string;
+  direction: 'UP' | 'DOWN';
+  accuracy: number;
+  trendStrength: number; // 1–100
+  trendBias: 'Bullish' | 'Bearish' | 'Neutral';
+  createdAt: number;
+}
+
+export interface ReferralData {
+  inviteLink: string;
+  prizePool: number;
+  rankPrizes: number[];
+  endsAt: number;
+  invited: number;
+  approved: number;
+  rank: number | null;
+  needForPrize: number;
+  leaderboard: { rank: number; name: string; approved: number; prize: number; you?: boolean }[];
+  friends: { name: string; approved: boolean; deposit: number }[];
+}
+
+export interface FaqData {
+  supportHandle: string;
+  faq: { q: string; a: string }[];
+}
+
+// ---- Endpoints ---------------------------------------------------------------
+export const api = {
+  config: () => request<AppConfig>('/api/config'),
+  requestCode: (email: string) =>
+    request<{ ok: boolean; devCode?: string }>('/api/auth/request-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  verifyCode: (email: string, code: string, ref?: string) =>
+    request<{ token: string; user: UserState }>('/api/auth/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, ref }),
+    }),
+  logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  me: () => request<UserState>('/api/me'),
+  submitId: (pocketOptionId: string) =>
+    request<UserState>('/api/registration/id', {
+      method: 'POST',
+      body: JSON.stringify({ pocketOptionId }),
+    }),
+  verifyStatus: () => request<UserState>('/api/registration/status'),
+  resetRegistration: () => request<UserState>('/api/registration/reset', { method: 'POST' }),
+  generateSignal: (pair: string, expiration: string) =>
+    request<Signal>('/api/signals/generate', {
+      method: 'POST',
+      body: JSON.stringify({ pair, expiration }),
+    }),
+  track: (action: 'taken' | 'skipped') =>
+    request<{ total: number; taken: number; skipped: number }>('/api/signals/track', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
+  saveSettings: (settings: { timezone?: string; language?: string }) =>
+    request<UserState>('/api/profile/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+  referrals: () => request<ReferralData>('/api/referrals'),
+  assistant: (message: string) =>
+    request<{ reply: string }>('/api/assistant/message', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+  faq: () => request<FaqData>('/api/support/faq'),
+};

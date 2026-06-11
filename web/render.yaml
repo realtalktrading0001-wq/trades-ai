@@ -1,0 +1,58 @@
+# Render.com blueprint for the WEBSITE build (pocketaitrades.com).
+# This is a SEPARATE service from the Telegram mini app — its own database,
+# its own URL. Express serves both the API and the built client on one origin.
+#
+# Deploy: Render Dashboard → New + → Blueprint → pick this repo. If your repo
+# also contains the mini app's render.yaml at the root, instead create this as a
+# standalone service and set "Root Directory" = web. Then set the secret env
+# vars (RESEND_API_KEY, POCKETOPTION_*) in the service's Environment tab.
+services:
+  - type: web
+    name: pocketaitrades-web
+    runtime: node
+    rootDir: web
+    plan: starter            # always-on + persistent disk
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATA_DIR
+        value: /var/data          # SQLite lives on the persistent disk
+      - key: WEB_URL
+        value: https://pocketaitrades.com   # used to build referral links
+      # Email login (Resend) — verify your domain in Resend, then set these:
+      - key: RESEND_API_KEY
+        sync: false               # paste your Resend API key (secret)
+      - key: EMAIL_FROM
+        value: "TRADES AI <login@pocketaitrades.com>"
+      - key: APP_NAME
+        value: TRADES AI
+      - key: SUPPORT_HANDLE
+        value: Tradesaisupport
+      - key: DAILY_PRIZE_POOL
+        value: "1000"
+      # PocketOption affiliate API (real ID verification) — same as the mini app.
+      - key: POCKETOPTION_REF_URL
+        sync: false               # your real affiliate link
+      - key: POCKETOPTION_API_TOKEN
+        sync: false               # your affiliate API token (secret)
+      - key: POCKETOPTION_PARTNER_ID
+        value: "752344"
+      - key: POCKETOPTION_API_BASE
+        value: https://pocketpartners.com/api/user-info
+      - key: MIN_DEPOSIT_USD
+        value: "15"
+      # Live-balance access gate: unlock at >= $15, revoke below $5.
+      - key: ACCESS_MIN_BALANCE_USD
+        value: "15"
+      - key: REVOKE_BALANCE_USD
+        value: "5"
+      - key: VERIFY_DELAY_SECONDS
+        value: "6"                # fallback only (used if POCKETOPTION_API_TOKEN is blank)

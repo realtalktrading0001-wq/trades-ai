@@ -4,4 +4,6 @@ dist/
 .env
 server/data/*.sqlite
 server/data/*.sqlite-*
+**/data/*.sqlite
+**/data/*.sqlite-*
 .DS_Store

@@ -24,12 +24,19 @@ export default function OnboardingCarousel({ onDone }: { onDone: () => void }) {
       <div className="absolute inset-0 bg-gradient-to-b from-midnight to-midnight-deep" />
       <div className="relative z-10 w-full max-w-md">
         <div className="card p-7 text-center animate-fade-in">
-          <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-electric/20 to-cyan/10 border border-cyan/30 shadow-glow-cyan">
-            <slide.Icon className="h-14 w-14 text-cyan" />
-          </div>
+          {i === 0 ? (
+            <img
+              src="/logo.png"
+              alt="TRADES AI"
+              className="mx-auto mb-6 h-28 w-28 rounded-3xl object-cover border border-cyan/30 shadow-glow-cyan"
+            />
+          ) : (
+            <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-electric/20 to-cyan/10 border border-cyan/30 shadow-glow-cyan">
+              <slide.Icon className="h-14 w-14 text-cyan" />
+            </div>
+          )}
 
-          <div className="text-xs font-semibold uppercase tracking-widest text-cyan/80">{t(`ob.${slide.k}.title`)}</div>
-          <h2 className="mt-2 text-2xl font-extrabold text-white">{t(`ob.${slide.k}.header`)}</h2>
+          <h2 className="text-2xl font-extrabold text-white">{t(`ob.${slide.k}.header`)}</h2>
           <p className="mt-1 text-sm font-medium text-muted">{t(`ob.${slide.k}.sub`)}</p>
           <p className="mt-4 text-[15px] leading-relaxed text-slate-300">{t(`ob.${slide.k}.text`)}</p>
 

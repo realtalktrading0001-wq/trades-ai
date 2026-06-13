@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
 import { buildUserState, runVerification } from './state.js';
+import { sendBotMessage } from './telegram-bot.js';
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,12 @@ const POCKETOPTION_REF_URL =
   process.env.POCKETOPTION_REF_URL ?? 'https://pocketoption.com/?ref=YOUR_REF_CODE';
 const SUPPORT_HANDLE = process.env.SUPPORT_HANDLE ?? 'Tradesaisupport';
 const DAILY_PRIZE_POOL = Number(process.env.DAILY_PRIZE_POOL) || 1000;
+// One-time welcome DM, sent once a user allows the bot to message them. Editable in
+// the dashboard (WELCOME_MESSAGE); use literal \n for line breaks. HTML is allowed.
+const WELCOME_MESSAGE = (
+  process.env.WELCOME_MESSAGE ??
+  "👋 <b>Welcome to TRADES AI!</b>\n\nYou're all set for free AI trading signals. Tap below to open the app anytime — we'll keep you posted with the best signals and updates. 🚀"
+).replace(/\\n/g, '\n');
 
 const CURRENCY_PAIRS = [
   'EUR/USD-OTC',
@@ -211,6 +218,19 @@ app.post('/api/auth', (req, res) => {
 
 app.get('/api/me', (req, res) => {
   res.json(buildUserState(req.user));
+});
+
+// One-time welcome DM, sent after the Mini App reports the user granted the bot
+// write access (requestWriteAccess). Idempotent via the `welcomed` flag, and it
+// seeds the broadcast list (every user we're allowed to message). No-op if BOT_TOKEN unset.
+app.post('/api/welcome', async (req, res) => {
+  if (req.user.welcomed) {
+    res.json({ ok: true, sent: false });
+    return;
+  }
+  const sent = await sendBotMessage(req.user.tg_id, WELCOME_MESSAGE, { openAppButton: true });
+  if (sent) db.prepare('UPDATE users SET welcomed = 1 WHERE tg_id = ?').run(req.user.tg_id);
+  res.json({ ok: true, sent });
 });
 
 // Registration: submit PocketOption ID -> look it up against our affiliate now.

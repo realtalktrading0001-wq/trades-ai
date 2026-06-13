@@ -1,7 +1,24 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, type AppConfig, type UserState } from '../api';
-import { initTelegram } from '../telegram';
+import { initTelegram, requestWriteAccess } from '../telegram';
 import { langToCode, isRTL } from '../i18n';
+
+// Ask once per device for permission to message the user. On grant, the server
+// sends the one-time welcome DM (so the bot lands in their chat list and we can
+// re-engage them later). Fire-and-forget — never blocks app load.
+const WA_KEY = 'tradesai_write_access_asked';
+async function maybeAskWriteAccess() {
+  if (localStorage.getItem(WA_KEY)) return;
+  localStorage.setItem(WA_KEY, '1');
+  const granted = await requestWriteAccess();
+  if (granted) {
+    try {
+      await api.welcome();
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 export type Tab = 'profile' | 'referrals' | 'signals' | 'assistant' | 'support';
 export type ThemeMode = 'dark' | 'light';
@@ -60,6 +77,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setConfig(cfg);
       setUser(usr);
       setError(null);
+      void maybeAskWriteAccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {

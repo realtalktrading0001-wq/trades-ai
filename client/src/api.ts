@@ -103,4 +103,5 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
   faq: () => request<FaqData>('/api/support/faq'),
+  welcome: () => request<{ ok: boolean; sent: boolean }>('/api/welcome', { method: 'POST' }),
 };

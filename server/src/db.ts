@@ -84,7 +84,7 @@ try {
 
 // Migration: Meta ad-click attribution copied onto the user at first visit
 // (the fbc/fbp the server later replays to Meta's Conversions API on verify/deposit).
-for (const col of ['attrib_fbc TEXT', 'attrib_fbp TEXT', 'attrib_source TEXT']) {
+for (const col of ['attrib_fbc TEXT', 'attrib_fbp TEXT', 'attrib_source TEXT', 'welcomed INTEGER NOT NULL DEFAULT 0']) {
   try {
     db.exec(`ALTER TABLE users ADD COLUMN ${col}`);
   } catch {
@@ -107,6 +107,7 @@ export interface UserRow {
   attrib_fbc: string | null;
   attrib_fbp: string | null;
   attrib_source: string | null;
+  welcomed: number; // 1 once the one-time welcome DM has been sent
   created_at: number;
 }
 

@@ -10,6 +10,7 @@ interface TelegramWebApp {
   HapticFeedback?: { impactOccurred: (s: string) => void; notificationOccurred: (s: string) => void };
   setHeaderColor?: (c: string) => void;
   setBackgroundColor?: (c: string) => void;
+  requestWriteAccess?: (callback?: (granted: boolean) => void) => void;
 }
 
 declare global {
@@ -46,4 +47,23 @@ export function shareToTelegram(url: string, text: string): void {
 
 export function haptic(): void {
   tg?.HapticFeedback?.impactOccurred('light');
+}
+
+/**
+ * Ask the user to allow the bot to message them. Granting this lets the bot send
+ * the welcome DM (so it lands in their chat list) and re-engage them later via
+ * broadcasts. Resolves true if granted; false outside Telegram or on old clients.
+ */
+export function requestWriteAccess(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!tg || typeof tg.requestWriteAccess !== 'function') {
+      resolve(false);
+      return;
+    }
+    try {
+      tg.requestWriteAccess((granted) => resolve(!!granted));
+    } catch {
+      resolve(false);
+    }
+  });
 }

@@ -2,11 +2,13 @@
 //
 // Flow (a stateful "compose" conversation over the bot webhook):
 //   1. Admin DMs:  /broadcast <passphrase>
-//      → authorised only if from.id ∈ ADMIN_CHAT_IDS AND passphrase === BROADCAST_PASSPHRASE
-//      → bot asks for the content and remembers the admin is "awaiting content".
-//   2. Admin sends text, or a photo with a caption → bot echoes a live preview + recipient
-//      count + [✅ Send] / [✖ Cancel] inline buttons (a short draft token rides on the buttons).
-//   3. Tap ✅ → bot blasts every welcomed=1 user (throttled), then reports sent/failed/blocked.
+//      → authorised only if from.id ∈ ADMIN_CHAT_IDS AND passphrase === BROADCAST_PASSPHRASE.
+//   2. Admin sends the content: plain text, or a photo / video / GIF / document with a caption.
+//   3. Bot asks for optional link buttons (one per line, `Label | https://url`), or /preview
+//      for the default Open-App button, or /nobutton for none.
+//   4. Bot echoes a live preview (exactly as recipients will see it) + recipient count +
+//      [✅ Send] / [✖ Cancel] inline buttons (a short draft token rides on the buttons).
+//   5. Tap ✅ → bot blasts every welcomed=1 user (throttled), then reports sent/failed/blocked.
 //
 // Two-factor auth (id allow-list AND passphrase) keeps a stray /broadcast from random users
 // inert. No-ops gracefully if BOT_TOKEN / env is unset (local dev).
@@ -18,7 +20,6 @@ import {
   callBotApi,
   openAppKeyboard,
   sendBotMessage,
-  sendBotPhoto,
   editBotMessageText,
   answerCallbackQuery,
   setBotWebhook,
@@ -38,24 +39,48 @@ const isAdmin = (id: string | number) => ADMIN_CHAT_IDS.includes(String(id));
 const SEND_DELAY_MS = 40;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Media kinds we forward, mapped to the Bot API send method + body field.
+type MediaKind = 'photo' | 'video' | 'animation' | 'document';
+const MEDIA: Record<MediaKind, { method: string; field: string }> = {
+  photo: { method: 'sendPhoto', field: 'photo' },
+  video: { method: 'sendVideo', field: 'video' },
+  animation: { method: 'sendAnimation', field: 'animation' }, // GIFs
+  document: { method: 'sendDocument', field: 'document' },
+};
+
+interface DraftButton {
+  text: string;
+  url: string;
+}
+
 // ---- In-memory conversation state (single Render instance; fine to lose on redeploy) ----
 
-/** Admin ids that sent a valid /broadcast and are now expected to send content. */
-const awaitingContent = new Set<string>();
+interface Content {
+  kind: 'text' | MediaKind;
+  text: string; // message body, or media caption ('' if none)
+  fileId?: string; // set for media kinds
+}
+/** Admins past auth: 'content' = awaiting the message, 'buttons' = awaiting button lines. */
+interface Compose {
+  phase: 'content' | 'buttons';
+  content?: Content;
+  createdAt: number;
+}
+const compose = new Map<string, Compose>();
 
-interface Draft {
+interface Draft extends Content {
   adminId: string;
-  kind: 'text' | 'photo';
-  text: string; // message text, or photo caption ('' if none)
-  photoFileId?: string;
+  replyMarkup?: unknown; // computed inline keyboard (buttons / default / none)
+  buttonCount: number;
   createdAt: number;
 }
 const drafts = new Map<string, Draft>();
-const DRAFT_TTL_MS = 60 * 60 * 1000;
+const TTL_MS = 60 * 60 * 1000;
 
-function pruneDrafts() {
+function prune() {
   const now = Date.now();
-  for (const [token, d] of drafts) if (now - d.createdAt > DRAFT_TTL_MS) drafts.delete(token);
+  for (const [k, d] of drafts) if (now - d.createdAt > TTL_MS) drafts.delete(k);
+  for (const [k, c] of compose) if (now - c.createdAt > TTL_MS) compose.delete(k);
 }
 
 // ---- Minimal Telegram update shapes (only the fields we read) ----
@@ -67,7 +92,7 @@ interface TgChat {
   id: number;
   type?: string;
 }
-interface TgPhotoSize {
+interface TgFile {
   file_id: string;
 }
 interface TgMessage {
@@ -76,7 +101,10 @@ interface TgMessage {
   chat: TgChat;
   text?: string;
   caption?: string;
-  photo?: TgPhotoSize[];
+  photo?: TgFile[];
+  video?: TgFile;
+  animation?: TgFile;
+  document?: TgFile;
 }
 interface TgCallbackQuery {
   id: string;
@@ -131,9 +159,9 @@ async function handleMessage(msg: TgMessage): Promise<void> {
   const chatId = msg.chat.id;
   const text = (msg.text ?? '').trim();
 
-  // /cancel — abort an in-progress compose.
+  // /cancel — abort an in-progress compose at any step.
   if (text === '/cancel' || text.startsWith('/cancel ')) {
-    awaitingContent.delete(fromId);
+    compose.delete(fromId);
     await sendBotMessage(chatId, '❌ Cancelled.');
     return;
   }
@@ -146,10 +174,7 @@ async function handleMessage(msg: TgMessage): Promise<void> {
       // ADMIN_CHAT_IDS, but don't reveal anything about the passphrase.
       await sendBotMessage(
         chatId,
-        `🚫 You're not authorised to broadcast.\n\nYour Telegram ID is <code>${fromId}</code>.\n\n` +
-          `<i>diag — admins loaded: ${ADMIN_CHAT_IDS.length}` +
-          `${ADMIN_CHAT_IDS.length ? ` [${ADMIN_CHAT_IDS.map((a) => a.length + 'ch').join(', ')}]` : ''}` +
-          `, passphrase set: ${BROADCAST_PASSPHRASE ? 'yes' : 'no'}</i>`
+        `🚫 You're not authorised to broadcast.\n\nYour Telegram ID is <code>${fromId}</code>.`
       );
       return;
     }
@@ -160,46 +185,95 @@ async function handleMessage(msg: TgMessage): Promise<void> {
       );
       return;
     }
-    awaitingContent.add(fromId);
+    prune();
+    compose.set(fromId, { phase: 'content', createdAt: Date.now() });
     await sendBotMessage(
       chatId,
-      '✅ <b>Authorised.</b>\n\nNow send the message you want to broadcast — plain text, or a photo with a caption.\n\nSend /cancel to abort.'
+      '✅ <b>Authorised.</b>\n\nNow send the message to broadcast — plain <b>text</b>, or a <b>photo / video / GIF / document</b> (with an optional caption).\n\nSend /cancel anytime to abort.'
     );
     return;
   }
 
-  // Any other private message: if this admin is mid-compose, it's the broadcast content.
-  if (!awaitingContent.has(fromId)) return; // stay silent to everyone else
+  const state = compose.get(fromId);
+  if (!state) return; // not mid-compose → stay silent to everyone else
 
-  const draft = buildDraft(fromId, msg);
-  if (!draft) {
+  if (state.phase === 'content') {
+    await handleContent(fromId, chatId, msg);
+  } else {
+    await handleButtons(fromId, chatId, text);
+  }
+}
+
+/** Step 2 → 3: capture the content, then ask about buttons. */
+async function handleContent(fromId: string, chatId: number, msg: TgMessage): Promise<void> {
+  const content = extractContent(msg);
+  if (!content) {
     await sendBotMessage(
       chatId,
-      '⚠️ Unsupported message. Send plain text or a single photo (with optional caption). /cancel to abort.'
+      '⚠️ Unsupported message. Send plain text, or a single photo / video / GIF / document (caption optional). /cancel to abort.'
     );
-    return; // keep them in compose mode to retry
+    return; // stay in 'content' phase to retry
+  }
+  compose.set(fromId, { phase: 'buttons', content, createdAt: Date.now() });
+  await sendBotMessage(
+    chatId,
+    '👍 Got it. <b>Add link buttons?</b> (optional, boosts clicks)\n\n' +
+      'Send one button per line as:\n<code>Label | https://your-link.com</code>\n\n' +
+      'Example:\n<code>🚀 Trade Now | https://pocketoption.com\n📈 Open App | https://t.me/tradesaipocketbot?startapp=open</code>\n\n' +
+      'Or:\n• /preview — keep just the default 🚀 Open App button\n• /nobutton — no buttons at all',
+    { replyMarkup: undefined }
+  );
+}
+
+/** Step 3 → 4: parse button lines (or /preview, /nobutton), then show the preview. */
+async function handleButtons(fromId: string, chatId: number, text: string): Promise<void> {
+  const state = compose.get(fromId);
+  if (!state?.content) {
+    compose.delete(fromId);
+    return;
   }
 
-  awaitingContent.delete(fromId); // content captured
-  pruneDrafts();
+  let replyMarkup: unknown;
+  let buttonCount = 0;
+
+  if (text === '/preview') {
+    replyMarkup = openAppKeyboard();
+    buttonCount = 1;
+  } else if (text === '/nobutton') {
+    replyMarkup = undefined;
+    buttonCount = 0;
+  } else {
+    const buttons = parseButtons(text);
+    if (buttons.length === 0) {
+      await sendBotMessage(
+        chatId,
+        "⚠️ Couldn't read any buttons. Use <code>Label | https://link</code> per line — or /preview (default button) or /nobutton."
+      );
+      return; // stay in 'buttons' phase
+    }
+    replyMarkup = { inline_keyboard: buttons.map((b) => [{ text: b.text, url: b.url }]) };
+    buttonCount = buttons.length;
+  }
+
+  compose.delete(fromId); // compose complete
   const token = crypto.randomBytes(8).toString('hex');
+  const draft: Draft = { adminId: fromId, ...state.content, replyMarkup, buttonCount, createdAt: Date.now() };
   drafts.set(token, draft);
 
-  // Show the preview exactly as recipients will see it (with the Open App button).
-  const previewOk = draft.photoFileId
-    ? await sendBotPhoto(chatId, draft.photoFileId, draft.text || undefined, { openAppButton: true })
-    : await sendBotMessage(chatId, draft.text, { openAppButton: true });
-  if (!previewOk) {
+  // Preview: send the content exactly as recipients will see it.
+  const preview = await sendDraftTo(chatId, draft);
+  if (!preview.ok) {
     drafts.delete(token);
     await sendBotMessage(
       chatId,
-      "⚠️ Couldn't render that as a preview (check any HTML formatting). Start over with /broadcast."
+      `⚠️ Couldn't render that preview${preview.description ? ` (${preview.description})` : ''}. Check any HTML formatting / button URLs and start over with /broadcast.`
     );
     return;
   }
 
   const count = recipientCount();
-  await sendBotMessage(chatId, `👆 <b>Preview.</b> Send this to <b>${count}</b> user(s)?`, {
+  const btnNote = buttonCount ? ` · ${buttonCount} button(s)` : ' · no buttons';
+  await sendBotMessage(chatId, `👆 <b>Preview.</b> Send this to <b>${count}</b> user(s)?${btnNote}`, {
     replyMarkup: {
       inline_keyboard: [
         [
@@ -211,15 +285,34 @@ async function handleMessage(msg: TgMessage): Promise<void> {
   });
 }
 
-function buildDraft(adminId: string, msg: TgMessage): Draft | null {
-  if (msg.photo && msg.photo.length > 0) {
-    const fileId = msg.photo[msg.photo.length - 1].file_id; // largest size
-    return { adminId, kind: 'photo', photoFileId: fileId, text: (msg.caption ?? '').trim(), createdAt: Date.now() };
-  }
-  if (msg.text && msg.text.trim()) {
-    return { adminId, kind: 'text', text: msg.text.trim(), createdAt: Date.now() };
-  }
+function extractContent(msg: TgMessage): Content | null {
+  const caption = (msg.caption ?? '').trim();
+  // Order matters: a GIF arrives as `animation` (and sometimes also `document`).
+  if (msg.photo && msg.photo.length > 0)
+    return { kind: 'photo', fileId: msg.photo[msg.photo.length - 1].file_id, text: caption };
+  if (msg.animation) return { kind: 'animation', fileId: msg.animation.file_id, text: caption };
+  if (msg.video) return { kind: 'video', fileId: msg.video.file_id, text: caption };
+  if (msg.document) return { kind: 'document', fileId: msg.document.file_id, text: caption };
+  if (msg.text && msg.text.trim()) return { kind: 'text', text: msg.text.trim() };
   return null;
+}
+
+/** Parse `Label | https://url` lines into buttons (one button per row). */
+function parseButtons(text: string): DraftButton[] {
+  const out: DraftButton[] = [];
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    const idx = t.indexOf('|');
+    if (idx === -1) continue;
+    const label = t.slice(0, idx).trim();
+    let url = t.slice(idx + 1).trim();
+    if (!label || !url) continue;
+    if (/^t\.me\//i.test(url)) url = 'https://' + url; // be forgiving about t.me links
+    if (!/^https?:\/\//i.test(url)) continue; // Telegram requires a valid http(s) URL
+    out.push({ text: label, url });
+  }
+  return out;
 }
 
 // ---- Callback (button) handling ----
@@ -272,24 +365,33 @@ function recipientCount(): number {
   return row?.n ?? 0;
 }
 
+/** Send a draft to one chat. Used for both the preview and the bulk send. */
+async function sendDraftTo(chatId: string | number, draft: Draft) {
+  const body: Record<string, unknown> = { chat_id: chatId };
+  if (draft.replyMarkup) body.reply_markup = draft.replyMarkup;
+
+  if (draft.kind === 'text') {
+    body.text = draft.text;
+    body.parse_mode = 'HTML';
+    body.disable_web_page_preview = true;
+    return callBotApi('sendMessage', body);
+  }
+  const media = MEDIA[draft.kind];
+  body[media.field] = draft.fileId;
+  if (draft.text) {
+    body.caption = draft.text;
+    body.parse_mode = 'HTML';
+  }
+  return callBotApi(media.method, body);
+}
+
 type SendResult = 'ok' | 'blocked' | 'failed';
 
 async function sendOne(chatId: string, draft: Draft): Promise<SendResult> {
-  const body: Record<string, unknown> = draft.photoFileId
-    ? { chat_id: chatId, photo: draft.photoFileId, reply_markup: openAppKeyboard() }
-    : { chat_id: chatId, text: draft.text, disable_web_page_preview: true, reply_markup: openAppKeyboard() };
-  if (draft.photoFileId && draft.text) {
-    body.caption = draft.text;
-    body.parse_mode = 'HTML';
-  } else if (!draft.photoFileId) {
-    body.parse_mode = 'HTML';
-  }
-  const method = draft.photoFileId ? 'sendPhoto' : 'sendMessage';
-
-  let res = await callBotApi(method, body);
+  let res = await sendDraftTo(chatId, draft);
   if (!res.ok && res.status === 429 && res.retryAfter) {
     await sleep((res.retryAfter + 1) * 1000); // honour Telegram's back-off, then retry once
-    res = await callBotApi(method, body);
+    res = await sendDraftTo(chatId, draft);
   }
   if (res.ok) return 'ok';
   // 403 = user blocked the bot / deactivated / chat not found → prune from the list.
@@ -331,7 +433,7 @@ async function deliver(draft: Draft, chatId: number, messageId: number): Promise
     draft.adminId,
     draft.kind,
     draft.text || null,
-    draft.photoFileId ?? null,
+    draft.fileId ?? null,
     recipients.length,
     sent,
     failed,

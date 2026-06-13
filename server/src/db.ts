@@ -72,6 +72,21 @@ db.exec(`
     ip          TEXT,
     created_at  INTEGER NOT NULL
   );
+
+  -- Admin broadcast history (one row per send). Sent from inside Telegram via the
+  -- bot's /broadcast command; recipients = users with welcomed = 1.
+  CREATE TABLE IF NOT EXISTS broadcasts (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    sent_by        TEXT NOT NULL,            -- admin tg_id
+    kind           TEXT NOT NULL,            -- 'text' | 'photo'
+    text           TEXT,                     -- message text / photo caption
+    photo_file_id  TEXT,                     -- Telegram file_id when kind = 'photo'
+    recipients     INTEGER NOT NULL DEFAULT 0,
+    sent           INTEGER NOT NULL DEFAULT 0,
+    failed         INTEGER NOT NULL DEFAULT 0,
+    blocked        INTEGER NOT NULL DEFAULT 0,
+    created_at     INTEGER NOT NULL
+  );
 `);
 
 // Migration: why a verify was rejected ('not_found' | 'duplicate'). Wrapped in
@@ -91,6 +106,9 @@ for (const col of ['attrib_fbc TEXT', 'attrib_fbp TEXT', 'attrib_source TEXT', '
     /* column already present */
   }
 }
+
+// Index the broadcast-list filter. Must run AFTER the migration above adds `welcomed`.
+db.exec(`CREATE INDEX IF NOT EXISTS idx_users_welcomed ON users(welcomed);`);
 
 export interface UserRow {
   tg_id: string;
@@ -127,4 +145,17 @@ export interface StatsRow {
   total: number;
   taken: number;
   skipped: number;
+}
+
+export interface BroadcastRow {
+  id: number;
+  sent_by: string;
+  kind: 'text' | 'photo';
+  text: string | null;
+  photo_file_id: string | null;
+  recipients: number;
+  sent: number;
+  failed: number;
+  blocked: number;
+  created_at: number;
 }

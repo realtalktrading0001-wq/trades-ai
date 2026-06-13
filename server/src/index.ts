@@ -9,6 +9,7 @@ import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
 import { buildUserState, runVerification } from './state.js';
 import { sendBotMessage } from './telegram-bot.js';
+import { handleBotUpdate, registerBotWebhook, BOT_WEBHOOK_SECRET, type TgUpdate } from './broadcast.js';
 
 const app = express();
 app.use(cors());
@@ -207,6 +208,23 @@ app.post('/api/track/click', (req, res) => {
     Date.now()
   );
   res.json({ token });
+});
+
+// Telegram bot webhook (no auth — this is Telegram calling us, not the Mini App).
+// Secured two ways: the secret in the path AND Telegram's secret_token header must
+// both match BOT_WEBHOOK_SECRET. Drives the admin /broadcast command (see broadcast.ts).
+app.post('/telegram/webhook/:secret', (req, res) => {
+  const headerSecret = req.header('x-telegram-bot-api-secret-token');
+  if (
+    !BOT_WEBHOOK_SECRET ||
+    req.params.secret !== BOT_WEBHOOK_SECRET ||
+    headerSecret !== BOT_WEBHOOK_SECRET
+  ) {
+    res.sendStatus(403);
+    return;
+  }
+  res.sendStatus(200); // ack immediately; process the update out of band
+  void handleBotUpdate(req.body as TgUpdate);
 });
 
 // ---- Everything below requires a (real or dev-mock) Telegram user -----------
@@ -459,4 +477,5 @@ app.listen(PORT, () => {
   if (!process.env.BOT_TOKEN) {
     console.log('[signal-ai] BOT_TOKEN not set — running in dev mode with a mock Telegram user.');
   }
+  void registerBotWebhook();
 });

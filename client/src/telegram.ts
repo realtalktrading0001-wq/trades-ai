@@ -11,10 +11,6 @@ interface TelegramWebApp {
   setHeaderColor?: (c: string) => void;
   setBackgroundColor?: (c: string) => void;
   requestWriteAccess?: (callback?: (granted: boolean) => void) => void;
-  showPopup?: (
-    params: { title?: string; message: string; buttons?: { id?: string; type?: string; text?: string }[] },
-    callback?: (buttonId: string) => void
-  ) => void;
 }
 
 declare global {
@@ -68,34 +64,6 @@ export function requestWriteAccess(): Promise<boolean> {
       tg.requestWriteAccess((granted) => resolve(!!granted));
     } catch {
       resolve(false);
-    }
-  });
-}
-
-/**
- * Branded pre-prompt shown right before the native write-access request. Telegram's
- * own "Allow … to message you?" dialog can't be reworded, so we frame it first as
- * "Press OK to Start Trades AI" — it feels like starting the app, not a system ask.
- * Resolves true when the user taps OK; resolves true (pass-through) on old clients
- * that lack showPopup so the native request still fires.
- */
-export function showStartConfirm(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (!tg || typeof tg.showPopup !== 'function') {
-      resolve(true);
-      return;
-    }
-    try {
-      tg.showPopup(
-        {
-          title: 'TRADES AI',
-          message: 'Press "Allow" To Start Trades AI 📊',
-          buttons: [{ id: 'ok', type: 'default', text: 'Allow ✅' }],
-        },
-        (id) => resolve(id === 'ok')
-      );
-    } catch {
-      resolve(true);
     }
   });
 }

@@ -146,7 +146,10 @@ async function handleMessage(msg: TgMessage): Promise<void> {
       // ADMIN_CHAT_IDS, but don't reveal anything about the passphrase.
       await sendBotMessage(
         chatId,
-        `🚫 You're not authorised to broadcast.\n\nYour Telegram ID is <code>${fromId}</code>.`
+        `🚫 You're not authorised to broadcast.\n\nYour Telegram ID is <code>${fromId}</code>.\n\n` +
+          `<i>diag — admins loaded: ${ADMIN_CHAT_IDS.length}` +
+          `${ADMIN_CHAT_IDS.length ? ` [${ADMIN_CHAT_IDS.map((a) => a.length + 'ch').join(', ')}]` : ''}` +
+          `, passphrase set: ${BROADCAST_PASSPHRASE ? 'yes' : 'no'}</i>`
       );
       return;
     }

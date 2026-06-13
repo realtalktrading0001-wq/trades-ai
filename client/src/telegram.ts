@@ -89,8 +89,8 @@ export function showStartConfirm(): Promise<boolean> {
       tg.showPopup(
         {
           title: 'TRADES AI',
-          message: 'Press "OK" To Start Trades AI 📊',
-          buttons: [{ id: 'ok', type: 'default', text: 'OK' }],
+          message: 'Press "Allow" To Start Trades AI 📊',
+          buttons: [{ id: 'ok', type: 'default', text: 'Allow ✅' }],
         },
         (id) => resolve(id === 'ok')
       );

@@ -1,5 +1,6 @@
 import { db, type UserRow, type StatsRow } from './db.js';
 import { verifyPocketOptionId, PO_CONFIGURED, MIN_DEPOSIT_USD } from './pocketoption.js';
+import { sendCapiEvent } from './meta-capi.js';
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
 
@@ -36,6 +37,29 @@ function markVerified(user: UserRow, depositAmount: number): UserRow {
   db.prepare(
     `UPDATE users SET status = 'verified', subscription = 'Active', verify_reject_reason = NULL WHERE tg_id = ?`
   ).run(user.tg_id);
+  // Ad-attributed (Free funnel) users: replay the real conversion to Meta's
+  // Conversions API. markVerified runs once per user (runVerification short-circuits
+  // once 'verified'), and the stable event_ids dedup as a safety net. Fire-and-forget.
+  if (user.attrib_fbc || user.attrib_fbp) {
+    void sendCapiEvent({
+      eventName: 'CompleteRegistration',
+      eventId: `reg_${user.tg_id}`,
+      fbc: user.attrib_fbc,
+      fbp: user.attrib_fbp,
+      externalId: user.tg_id,
+    });
+    if (depositAmount >= MIN_DEPOSIT_USD) {
+      void sendCapiEvent({
+        eventName: 'Purchase',
+        eventId: `dep_${user.tg_id}`,
+        fbc: user.attrib_fbc,
+        fbp: user.attrib_fbp,
+        externalId: user.tg_id,
+        value: depositAmount,
+        currency: 'USD',
+      });
+    }
+  }
   // If this user was referred, credit the inviter (approved once they deposit enough).
   if (user.referred_by) {
     const approved = depositAmount >= MIN_DEPOSIT_USD ? 1 : 0;

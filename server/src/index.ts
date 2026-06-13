@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
@@ -171,6 +172,34 @@ app.get('/api/config', (_req, res) => {
     timezones: TIMEZONES,
     languages: ['English', 'हिन्दी', 'Español', 'Português', 'Русский', 'العربية'],
   });
+});
+
+// Meta ad-click attribution (no auth): the Free landing page POSTs the ad-click
+// ids before the user has ever opened the Mini App. We store them under a short
+// token and return it; the page routes its CTAs to ?startapp=mf_<token>, which
+// auth.ts later ties to the user so the server can fire Conversions API events.
+// (Global cors() above already allows the cross-origin POST from the landing host.)
+app.post('/api/track/click', (req, res) => {
+  const { fbc, fbp, fbclid, variant } = req.body ?? {};
+  if (!fbc && !fbp) {
+    res.status(400).json({ error: 'no click identifiers' });
+    return;
+  }
+  const token = crypto.randomBytes(12).toString('base64url'); // ~16 chars, [A-Za-z0-9_-]
+  db.prepare(
+    `INSERT INTO click_attribution (token, fbc, fbp, fbclid, variant, ua, ip, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    token,
+    fbc ? String(fbc) : null,
+    fbp ? String(fbp) : null,
+    fbclid ? String(fbclid) : null,
+    variant ? String(variant) : null,
+    req.header('user-agent') ?? null,
+    (req.header('x-forwarded-for') ?? req.ip) ?? null,
+    Date.now()
+  );
+  res.json({ token });
 });
 
 // ---- Everything below requires a (real or dev-mock) Telegram user -----------

@@ -52,6 +52,9 @@ function ensureUser(tgId: string, name: string, startParam?: string): UserRow {
   if (!row) {
     const code = refId();
     let referredBy: string | null = null;
+    let attribFbc: string | null = null;
+    let attribFbp: string | null = null;
+    let attribSource: string | null = null;
     if (startParam?.startsWith('ref_')) {
       const inviterCode = startParam.slice(4);
       const inviter = db.prepare('SELECT tg_id FROM users WHERE ref_code = ?').get(inviterCode) as
@@ -60,11 +63,23 @@ function ensureUser(tgId: string, name: string, startParam?: string): UserRow {
       if (inviter && inviter.tg_id !== tgId) {
         referredBy = inviter.tg_id;
       }
+    } else if (startParam?.startsWith('mf_')) {
+      // Meta-ad click token minted by the Free landing page -> copy the ad-click
+      // ids onto the user so the server can replay conversions to Meta (CAPI).
+      const token = startParam.slice(3);
+      const click = db
+        .prepare('SELECT fbc, fbp, variant FROM click_attribution WHERE token = ?')
+        .get(token) as { fbc: string | null; fbp: string | null; variant: string | null } | undefined;
+      if (click) {
+        attribFbc = click.fbc;
+        attribFbp = click.fbp;
+        attribSource = click.variant ?? 'free';
+      }
     }
     db.prepare(
-      `INSERT INTO users (tg_id, name, timezone, ref_code, referred_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(tgId, name, 'UTC+00:00', code, referredBy, Date.now());
+      `INSERT INTO users (tg_id, name, timezone, ref_code, referred_by, attrib_fbc, attrib_fbp, attrib_source, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(tgId, name, 'UTC+00:00', code, referredBy, attribFbc, attribFbp, attribSource, Date.now());
     db.prepare('INSERT INTO stats (user_id) VALUES (?)').run(tgId);
     if (referredBy) {
       db.prepare(

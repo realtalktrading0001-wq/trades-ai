@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, type AppConfig, type UserState } from '../api';
-import { initTelegram, requestWriteAccess } from '../telegram';
+import { initTelegram, requestWriteAccess, showStartConfirm } from '../telegram';
 import { langToCode, isRTL } from '../i18n';
 
 // Ask once per device for permission to message the user. On grant, the server
@@ -10,6 +10,10 @@ const WA_KEY = 'tradesai_write_access_asked';
 async function maybeAskWriteAccess() {
   if (localStorage.getItem(WA_KEY)) return;
   localStorage.setItem(WA_KEY, '1');
+  // Show our branded "Press OK to Start Trades AI" popup first so the (un-rewordable)
+  // native write-access dialog that follows feels like part of starting the app.
+  const proceed = await showStartConfirm();
+  if (!proceed) return;
   const granted = await requestWriteAccess();
   if (granted) {
     try {

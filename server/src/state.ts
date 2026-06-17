@@ -44,6 +44,7 @@ function markVerified(user: UserRow, depositAmount: number): UserRow {
     void sendCapiEvent({
       eventName: 'CompleteRegistration',
       eventId: `reg_${user.tg_id}`,
+      source: user.attrib_source,
       fbc: user.attrib_fbc,
       fbp: user.attrib_fbp,
       externalId: user.tg_id,
@@ -52,6 +53,7 @@ function markVerified(user: UserRow, depositAmount: number): UserRow {
       void sendCapiEvent({
         eventName: 'Purchase',
         eventId: `dep_${user.tg_id}`,
+        source: user.attrib_source,
         fbc: user.attrib_fbc,
         fbp: user.attrib_fbp,
         externalId: user.tg_id,

@@ -9,7 +9,15 @@ import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
 import { buildUserState, runVerification } from './state.js';
 import { sendBotMessage } from './telegram-bot.js';
-import { handleBotUpdate, registerBotWebhook, BOT_WEBHOOK_SECRET, type TgUpdate } from './broadcast.js';
+import {
+  handleBotUpdate,
+  registerBotWebhook,
+  BOT_WEBHOOK_SECRET,
+  hasConfiguredWelcome,
+  sendConfiguredWelcome,
+  scheduleDripFor,
+  type TgUpdate,
+} from './broadcast.js';
 
 const app = express();
 app.use(cors());
@@ -246,8 +254,14 @@ app.post('/api/welcome', async (req, res) => {
     res.json({ ok: true, sent: false });
     return;
   }
-  const sent = await sendBotMessage(req.user.tg_id, WELCOME_MESSAGE, { openAppButton: true });
-  if (sent) db.prepare('UPDATE users SET welcomed = 1 WHERE tg_id = ?').run(req.user.tg_id);
+  // An admin-configured welcome (via /setwelcome) replaces the static WELCOME_MESSAGE.
+  const sent = hasConfiguredWelcome()
+    ? await sendConfiguredWelcome(req.user.tg_id)
+    : await sendBotMessage(req.user.tg_id, WELCOME_MESSAGE, { openAppButton: true });
+  if (sent) {
+    db.prepare('UPDATE users SET welcomed = 1 WHERE tg_id = ?').run(req.user.tg_id);
+    scheduleDripFor(req.user.tg_id); // post2 (15s) + post3 (2 min), skipped once verified
+  }
   res.json({ ok: true, sent });
 });
 

@@ -87,6 +87,36 @@ db.exec(`
     blocked        INTEGER NOT NULL DEFAULT 0,
     created_at     INTEGER NOT NULL
   );
+
+  -- Onboarding drip posts an admin configures from the bot (/setwelcome, /setpost2,
+  -- /setpost3). Each stage holds one or more posts; stored as Bot-API content so they
+  -- can be re-sent without copyMessage. welcome replaces the static WELCOME_MESSAGE.
+  CREATE TABLE IF NOT EXISTS onboarding_posts (
+    stage         TEXT NOT NULL,            -- 'welcome' | 'post2' | 'post3'
+    id            TEXT NOT NULL,
+    kind          TEXT NOT NULL,            -- 'text' | 'photo' | 'video' | 'animation' | 'document'
+    text          TEXT,                     -- body / caption ('' if none)
+    file_id       TEXT,                     -- set for media kinds
+    reply_markup  TEXT,                     -- JSON inline keyboard, or NULL
+    pos           INTEGER NOT NULL,
+    PRIMARY KEY (stage, id)
+  );
+
+  -- One-time scheduled broadcasts (/schedule). Sent to welcomed = 1 users at run_at
+  -- by the in-process scheduler; survives redeploys (a missed slot fires on next boot).
+  CREATE TABLE IF NOT EXISTS scheduled_posts (
+    id             TEXT PRIMARY KEY,
+    kind           TEXT NOT NULL,
+    text           TEXT,
+    file_id        TEXT,
+    reply_markup   TEXT,                    -- JSON inline keyboard, or NULL
+    run_at         INTEGER NOT NULL,
+    created_by     TEXT,
+    notify_chat_id TEXT,
+    status         TEXT NOT NULL,           -- 'pending' | 'sending' | 'done' | 'cancelled' | 'error'
+    sent           INTEGER, failed INTEGER, blocked INTEGER,
+    created_at     INTEGER NOT NULL
+  );
 `);
 
 // Migration: why a verify was rejected ('not_found' | 'duplicate'). Wrapped in

@@ -4,16 +4,25 @@ import { sendCapiEvent } from './meta-capi.js';
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
 
-// Per-user throttle so polling doesn't hammer the PocketOption API.
-const lastCheck = new Map<string, number>();
-const CHECK_INTERVAL_MS = 3000;
+// Live-balance access gate (registered under our link is necessary but not
+// sufficient): need >= ACCESS_MIN_BALANCE to UNLOCK, and access is removed only
+// once balance falls below REVOKE_BALANCE (the gap stops on/off flapping).
+export const ACCESS_MIN_BALANCE = Number(process.env.ACCESS_MIN_BALANCE_USD) || 15;
+export const REVOKE_BALANCE = Number(process.env.REVOKE_BALANCE_USD) || 5;
 
-/** Move a user to 'rejected' with a reason, and return the fresh row. */
-function rejectUser(tgId: string, reason: 'not_found' | 'duplicate'): UserRow {
-  db.prepare(`UPDATE users SET status = 'rejected', verify_reject_reason = ? WHERE tg_id = ?`).run(
-    reason,
-    tgId
-  );
+// Per-user throttle so polling doesn't hammer the PocketOption API. Verified
+// users are re-checked less often (we're only watching for a balance drop).
+const lastCheck = new Map<string, number>();
+const CHECK_INTERVAL_MS = 1500;
+const VERIFIED_RECHECK_MS = 30000;
+
+type RejectReason = 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped';
+
+/** Move a user to 'rejected' with a reason (and clear any active subscription). */
+function setRejected(tgId: string, reason: RejectReason): UserRow {
+  db.prepare(
+    `UPDATE users SET status = 'rejected', subscription = 'Not registered', verify_reject_reason = ? WHERE tg_id = ?`
+  ).run(reason, tgId);
   return db.prepare('SELECT * FROM users WHERE tg_id = ?').get(tgId) as unknown as UserRow;
 }
 
@@ -32,7 +41,7 @@ function markVerified(user: UserRow, depositAmount: number): UserRow {
   // with this id (race past the submit-time check), reject this one as a duplicate
   // instead of unlocking signals on the same broker account twice.
   if (user.pocket_option_id && idVerifiedByAnother(user.pocket_option_id, user.tg_id)) {
-    return rejectUser(user.tg_id, 'duplicate');
+    return setRejected(user.tg_id, 'duplicate');
   }
   db.prepare(
     `UPDATE users SET status = 'verified', subscription = 'Active', verify_reject_reason = NULL WHERE tg_id = ?`
@@ -83,21 +92,45 @@ function simulateVerify(user: UserRow): UserRow {
 }
 
 /**
- * Real verification: look the submitted PocketOption ID up against our affiliate.
- * If the Partners API returns the user (registered under us), promote to verified.
- * This is the single seam for verification — called from the registration endpoints.
+ * Real verification + balance gating. The single seam for access:
+ *  - Not yet verified: registered under us AND balance >= ACCESS_MIN_BALANCE -> verified.
+ *    Registered but balance too low -> 'low_balance' (the green "deposit funds" card).
+ *    Not registered (after a grace window) -> 'not_found'.
+ *  - Already verified: re-checked (less often); balance below REVOKE_BALANCE -> 'balance_dropped'.
+ * Called from the registration/status/signal/me endpoints.
  */
 export async function runVerification(user: UserRow): Promise<UserRow> {
-  if (user.status === 'verified' || !user.pocket_option_id) return user;
-
+  if (!user.pocket_option_id) return user;
   if (!PO_CONFIGURED) return simulateVerify(user);
 
+  const isVerified = user.status === 'verified';
   const now = Date.now();
-  if (now - (lastCheck.get(user.tg_id) ?? 0) < CHECK_INTERVAL_MS) return user;
+  const interval = isVerified ? VERIFIED_RECHECK_MS : CHECK_INTERVAL_MS;
+  if (now - (lastCheck.get(user.tg_id) ?? 0) < interval) return user;
   lastCheck.set(user.tg_id, now);
 
   const result = await verifyPocketOptionId(user.pocket_option_id);
-  if (result.registered) return markVerified(user, result.depositAmount);
+
+  if (result.registered) {
+    if (isVerified) {
+      // Keep access until the balance is *confirmed* below the revoke floor.
+      if (result.hasBalance && result.balance < REVOKE_BALANCE) {
+        return setRejected(user.tg_id, 'balance_dropped');
+      }
+      return user;
+    }
+    // Not verified yet: only unlock when funds are confirmed at/above the minimum.
+    if (result.hasBalance && result.balance >= ACCESS_MIN_BALANCE) {
+      return markVerified(user, result.depositAmount);
+    }
+    // Registered under us, but not enough live balance to unlock yet.
+    return setRejected(user.tg_id, 'low_balance');
+  }
+
+  // From here the id isn't registered under our affiliate. Never revoke an
+  // already-verified user on a non-registered/transient reading (could be an API
+  // hiccup) — balance-based revoke above is the only way they lose access.
+  if (isVerified) return user;
 
   const startedAt = user.verify_started_at ?? 0;
 
@@ -105,16 +138,14 @@ export async function runVerification(user: UserRow): Promise<UserRow> {
   // brand-new registration that hasn't propagated yet isn't falsely rejected,
   // then move to 'rejected' (the UI then tells them to register via our link).
   if (result.notFound && startedAt) {
-    const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 8) * 1000;
-    if (Date.now() - startedAt >= graceMs) return rejectUser(user.tg_id, 'not_found');
+    const graceMs = (Number(process.env.VERIFY_REJECT_SECONDS) || 4) * 1000;
+    if (Date.now() - startedAt >= graceMs) return setRejected(user.tg_id, 'not_found');
     return user; // still within grace
   }
 
-  // Safety net: never leave a user stuck on "Verifying…" forever. If the API has
-  // only thrown transient/network errors past the hard cap, reject so the heads-up
-  // card shows and they can retry — rather than spinning indefinitely.
-  const timeoutMs = (Number(process.env.VERIFY_TIMEOUT_SECONDS) || 30) * 1000;
-  if (startedAt && Date.now() - startedAt >= timeoutMs) return rejectUser(user.tg_id, 'not_found');
+  // Safety net: never leave a user stuck on "Verifying…" forever.
+  const timeoutMs = (Number(process.env.VERIFY_TIMEOUT_SECONDS) || 15) * 1000;
+  if (startedAt && Date.now() - startedAt >= timeoutMs) return setRejected(user.tg_id, 'not_found');
 
   return user; // transient error within the cap — stays "verifying"
 }

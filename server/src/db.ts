@@ -151,7 +151,7 @@ export interface UserRow {
   ref_code: string;
   referred_by: string | null;
   verify_started_at: number | null;
-  verify_reject_reason: 'not_found' | 'duplicate' | null;
+  verify_reject_reason: 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped' | null;
   attrib_fbc: string | null;
   attrib_fbp: string | null;
   attrib_source: string | null;

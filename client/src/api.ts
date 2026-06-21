@@ -16,7 +16,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ---- Types shared with the backend ------------------------------------------
 export type UserStatus = 'unregistered' | 'verifying' | 'verified' | 'rejected';
-export type RejectReason = 'not_found' | 'duplicate';
+export type RejectReason = 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped';
 
 export interface UserState {
   id: string;
@@ -39,6 +39,8 @@ export interface AppConfig {
   expirations: string[];
   timezones: string[];
   languages: string[];
+  accessMinBalance: number;
+  revokeBalance: number;
 }
 
 export interface Signal {
@@ -81,6 +83,7 @@ export const api = {
     }),
   verifyStatus: () => request<UserState>('/api/registration/status'),
   resetRegistration: () => request<UserState>('/api/registration/reset', { method: 'POST' }),
+  logout: () => request<UserState>('/api/registration/logout', { method: 'POST' }),
   generateSignal: (pair: string, expiration: string) =>
     request<Signal>('/api/signals/generate', {
       method: 'POST',

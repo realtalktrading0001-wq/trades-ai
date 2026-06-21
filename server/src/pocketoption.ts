@@ -14,6 +14,8 @@ export interface PoVerifyResult {
   registered: boolean; // user exists under our affiliate (HTTP 200, not an error body)
   notFound: boolean; // definitive "this id is not under our affiliate" (404 / error body)
   depositAmount: number; // best-effort total deposit in USD (0 if unknown)
+  balance: number; // live account balance in USD (0 if unknown)
+  hasBalance: boolean; // whether a `balance` field was actually present in the response
   configured: boolean; // API token + partner id present
   raw?: unknown;
   error?: string;
@@ -47,9 +49,20 @@ function extractDeposit(data: unknown): number {
   return 0;
 }
 
+// The live account balance (e.g. `"balance": 51.05`). Returns null when the
+// response doesn't include a balance, so callers can tell "balance is 0" apart
+// from "balance unknown" (we never revoke access on an unknown balance).
+function extractBalance(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null;
+  const obj = data as Record<string, unknown>;
+  const d = obj.data && typeof obj.data === 'object' ? (obj.data as Record<string, unknown>) : obj;
+  return 'balance' in d ? toNum(d.balance) : null;
+}
+
 /** Look up a PocketOption user id against our affiliate. */
 export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResult> {
-  if (!PO_CONFIGURED) return { registered: false, notFound: false, depositAmount: 0, configured: false };
+  if (!PO_CONFIGURED)
+    return { registered: false, notFound: false, depositAmount: 0, balance: 0, hasBalance: false, configured: false };
 
   const hash = crypto.createHash('md5').update(`${userId}:${PARTNER_ID}:${API_TOKEN}`).digest('hex');
   const url = `${API_BASE}/${encodeURIComponent(userId)}/${PARTNER_ID}/${hash}`;
@@ -69,8 +82,20 @@ export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResu
 
     if (res.status === 200 && !isError) {
       const depositAmount = extractDeposit(data);
-      console.log(`[po-verify] ${userId} registered (deposit≈${depositAmount}). raw:`, JSON.stringify(data).slice(0, 500));
-      return { registered: true, notFound: false, depositAmount, configured: true, raw: data };
+      const bal = extractBalance(data);
+      console.log(
+        `[po-verify] ${userId} registered (deposit≈${depositAmount}, balance≈${bal ?? '?'}). raw:`,
+        JSON.stringify(data).slice(0, 500)
+      );
+      return {
+        registered: true,
+        notFound: false,
+        depositAmount,
+        balance: bal ?? 0,
+        hasBalance: bal !== null,
+        configured: true,
+        raw: data,
+      };
     }
 
     let message = `status_${res.status}`;
@@ -85,13 +110,15 @@ export async function verifyPocketOptionId(userId: string): Promise<PoVerifyResu
       res.status === 400 ||
       isError === true ||
       /not[\s_]?found/i.test(message);
-    return { registered: false, notFound, depositAmount: 0, configured: true, raw: data, error: message };
+    return { registered: false, notFound, depositAmount: 0, balance: 0, hasBalance: false, configured: true, raw: data, error: message };
   } catch (e) {
     // Network/timeout error — NOT a definitive rejection; let the caller retry.
     return {
       registered: false,
       notFound: false,
       depositAmount: 0,
+      balance: 0,
+      hasBalance: false,
       configured: true,
       error: e instanceof Error ? e.message : 'fetch_failed',
     };

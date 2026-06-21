@@ -15,7 +15,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 export default function ProfileScreen() {
-  const { user, config, setUser } = useApp();
+  const { user, config, setUser, logout } = useApp();
   const t = useT();
   if (!user || !config) return null;
   const verified = user.status === 'verified';
@@ -79,6 +79,16 @@ export default function ProfileScreen() {
           onChange={(v) => save({ language: v })}
         />
       </div>
+
+      {/* Account — disconnect the linked PocketOption ID to add a new one */}
+      {user.pocketOptionId && (
+        <div className="card p-5">
+          <button onClick={() => logout()} className="btn-charcoal w-full py-3">
+            {t('prof.logout')}
+          </button>
+          <p className="mt-2 text-center text-xs text-muted">{t('prof.logoutHint')}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,6 +35,7 @@ interface AppContextValue {
   toggleTheme: () => void;
   refresh: () => Promise<void>;
   setUser: (u: UserState) => void;
+  logout: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -94,6 +95,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Disconnect the linked PocketOption ID so the user can add a new one. (Telegram
+  // users can't truly "log out" — this resets them to the registration flow.)
+  async function logout() {
+    try {
+      const usr = await api.logout();
+      setUser(usr);
+      setTab('signals');
+    } catch {
+      /* ignore — keep current view on failure */
+    }
+  }
+
   useEffect(() => {
     bootstrap();
   }, []);
@@ -111,7 +124,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ user, config, loading, error, tab, theme, setTab, setTheme, toggleTheme, refresh, setUser }}
+      value={{ user, config, loading, error, tab, theme, setTab, setTheme, toggleTheme, refresh, setUser, logout }}
     >
       {children}
     </AppContext.Provider>

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
-import { buildUserState, runVerification } from './state.js';
+import { buildUserState, runVerification, ACCESS_MIN_BALANCE, REVOKE_BALANCE } from './state.js';
 import { sendBotMessage } from './telegram-bot.js';
 import {
   handleBotUpdate,
@@ -187,6 +187,8 @@ app.get('/api/config', (_req, res) => {
     expirations: EXPIRATIONS,
     timezones: TIMEZONES,
     languages: ['English', 'हिन्दी', 'Español', 'Português', 'Русский', 'العربية'],
+    accessMinBalance: ACCESS_MIN_BALANCE,
+    revokeBalance: REVOKE_BALANCE,
   });
 });
 
@@ -238,12 +240,16 @@ app.post('/telegram/webhook/:secret', (req, res) => {
 // ---- Everything below requires a (real or dev-mock) Telegram user -----------
 app.use('/api', authMiddleware);
 
-app.post('/api/auth', (req, res) => {
-  res.json(buildUserState(req.user));
+app.post('/api/auth', async (req, res) => {
+  // Re-check on open so balance changes are reflected (verified→balance_dropped,
+  // or low_balance→verified once topped up).
+  const user = await runVerification(req.user);
+  res.json(buildUserState(user));
 });
 
-app.get('/api/me', (req, res) => {
-  res.json(buildUserState(req.user));
+app.get('/api/me', async (req, res) => {
+  const user = await runVerification(req.user);
+  res.json(buildUserState(user));
 });
 
 // One-time welcome DM, sent after the Mini App reports the user granted the bot
@@ -313,23 +319,41 @@ app.post('/api/registration/have-account', (req, res) => {
   res.json(buildUserState(req.user));
 });
 
-// Clear a transient 'rejected'/'verifying' state back to a clean 'unregistered'
-// view (used to auto-dismiss the rejection card). Never touches a verified user.
+// Clear a transient 'rejected' state back to a clean 'unregistered' view (used to
+// auto-dismiss the rejection card). Only clears the transient red cards
+// (not-under-our-link / duplicate) — the low-balance cards must persist so the
+// user keeps seeing "deposit funds". Never touches a verified user.
 app.post('/api/registration/reset', (req, res) => {
   db.prepare(
     `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
        pocket_option_id = NULL, verify_started_at = NULL, verify_reject_reason = NULL
-     WHERE tg_id = ? AND status = 'rejected'`
+     WHERE tg_id = ? AND status = 'rejected'
+       AND (verify_reject_reason IS NULL OR verify_reject_reason IN ('not_found','duplicate'))`
+  ).run(req.user.tg_id);
+  const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+  res.json(buildUserState(fresh));
+});
+
+// Log out: disconnect the linked PocketOption ID so the user can add a new one
+// (Telegram users have no session to destroy — this resets them to 'unregistered').
+app.post('/api/registration/logout', (req, res) => {
+  db.prepare(
+    `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
+       pocket_option_id = NULL, verify_started_at = NULL, verify_reject_reason = NULL
+     WHERE tg_id = ?`
   ).run(req.user.tg_id);
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
   res.json(buildUserState(fresh));
 });
 
 // Generate a signal (verified users only)
-app.post('/api/signals/generate', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+app.post('/api/signals/generate', async (req, res) => {
+  let user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+  // Re-check live balance before serving a signal; a drop below the floor
+  // revokes access here so the "low balance" card shows instead of a signal.
+  if (user.status === 'verified') user = await runVerification(user);
   if (user.status !== 'verified') {
-    res.status(403).json({ error: 'not_verified' });
+    res.status(403).json({ error: 'not_verified', user: buildUserState(user) });
     return;
   }
   const { pair, expiration } = req.body ?? {};

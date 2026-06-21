@@ -171,7 +171,43 @@ export async function registerBotWebhook(): Promise<void> {
   const ok = await setBotWebhook(url, BOT_WEBHOOK_SECRET);
   console.log(`[broadcast] setWebhook ${ok ? 'ok' : 'failed'} → ${url}`);
   if (ADMIN_CHAT_IDS.length === 0) console.warn('[broadcast] ADMIN_CHAT_IDS is empty — no one can broadcast.');
-  if (!BROADCAST_PASSPHRASE) console.warn('[broadcast] BROADCAST_PASSPHRASE is empty — broadcasts disabled.');
+  await registerAdminMenu();
+}
+
+/**
+ * Give admins a Telegram command menu (the "Menu" button + the / list), scoped to
+ * their chat only so regular Mini App users never see broadcast commands. Mirrors
+ * the Manav/Maxx bots.
+ */
+async function registerAdminMenu(): Promise<void> {
+  const adminCommands = [
+    { command: 'broadcast', description: 'Send a post to all users' },
+    { command: 'schedule', description: 'Schedule a post to send later' },
+    { command: 'scheduled', description: 'View / cancel scheduled posts' },
+    { command: 'setwelcome', description: 'Set the instant welcome post' },
+    { command: 'setpost2', description: 'Set the 15-sec follow-up post' },
+    { command: 'setpost3', description: 'Set the 2-min follow-up post' },
+    { command: 'onboarding', description: 'Show onboarding posts status' },
+    { command: 'testdrip', description: 'Test the welcome sequence on yourself' },
+    { command: 'stats', description: 'How many users you can reach' },
+    { command: 'myid', description: 'Show your Telegram ID' },
+    { command: 'cancel', description: 'Abort the current action' },
+  ];
+  // Clear any public command list so ordinary users see nothing.
+  await callBotApi('deleteMyCommands', {});
+  await callBotApi('deleteMyCommands', { scope: { type: 'all_private_chats' } });
+  let ok = 0;
+  for (const id of ADMIN_CHAT_IDS) {
+    const r = await callBotApi('setMyCommands', {
+      commands: adminCommands,
+      scope: { type: 'chat', chat_id: Number(id) },
+    });
+    // Show a "Menu" (commands) button for the admin instead of the default
+    // web-app launcher (which stays the default for everyone else).
+    await callBotApi('setChatMenuButton', { chat_id: Number(id), menu_button: { type: 'commands' } });
+    if (r.ok) ok++;
+  }
+  console.log(`[broadcast] admin menu set for ${ok}/${ADMIN_CHAT_IDS.length} admin(s).`);
 }
 
 // ---- Message handling ----
@@ -200,6 +236,12 @@ async function handleMessage(msg: TgMessage): Promise<void> {
   const cmdMatch = /^\/([a-z0-9_]+)(?:@\w+)?/i.exec(text);
   const cmd = cmdMatch ? '/' + cmdMatch[1].toLowerCase() : '';
   const rest = cmd ? text.slice(cmdMatch![0].length).trim() : '';
+
+  // /myid — anyone can get their own id (handy for filling ADMIN_CHAT_IDS).
+  if (cmd === '/myid') {
+    await sendBotMessage(chatId, `Your Telegram ID: <code>${fromId}</code>`);
+    return;
+  }
 
   // Commands that start the compose flow, mapped to their intent.
   const starters: Record<string, Intent> = {
@@ -253,19 +295,14 @@ async function handleMessage(msg: TgMessage): Promise<void> {
   else if (state.phase === 'buttons') await handleButtons(fromId, chatId, text);
 }
 
-/** Auth gate shared by every admin command: id allow-list AND passphrase. */
-async function requireAuth(fromId: string, chatId: number, passphrase: string, cmd: string): Promise<boolean> {
+/** Auth gate: the sender's Telegram ID must be in ADMIN_CHAT_IDS (no passphrase —
+ * commands are one-tap from the admin menu, secured by the id allow-list). Extra
+ * args are ignored so existing call sites that still pass a passphrase keep working. */
+async function requireAuth(fromId: string, chatId: number, ..._ignored: unknown[]): Promise<boolean> {
   if (!isAdmin(fromId)) {
     await sendBotMessage(
       chatId,
       `🚫 You're not authorised.\n\nYour Telegram ID is <code>${fromId}</code>.`
-    );
-    return false;
-  }
-  if (!BROADCAST_PASSPHRASE || passphrase !== BROADCAST_PASSPHRASE) {
-    await sendBotMessage(
-      chatId,
-      `🔒 Wrong (or missing) passphrase. Usage:\n<code>${cmd} &lt;passphrase&gt;</code>`
     );
     return false;
   }

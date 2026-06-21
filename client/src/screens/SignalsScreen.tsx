@@ -21,7 +21,7 @@ function PairFlag({ pair }: { pair: string }) {
 }
 
 export default function SignalsScreen() {
-  const { user, config, setUser, theme, toggleTheme } = useApp();
+  const { user, config, setUser, theme, toggleTheme, refresh } = useApp();
   const t = useT();
   const [regStep, setRegStep] = useState<'step1' | 'enterId'>('step1');
   const [modalOpen, setModalOpen] = useState(false);
@@ -65,22 +65,29 @@ export default function SignalsScreen() {
     prevStatus.current = user?.status;
   }, [user?.status]);
 
-  // The rejection card is a transient heads-up. Auto-clear it ~7s after it
-  // shows (unless the user tapped "enter ID again" and is actively retrying).
+  // The not-found / duplicate rejection cards are a transient heads-up: auto-clear
+  // ~7s after showing (unless the user tapped "enter ID again"). The low-balance
+  // cards are NOT transient — they persist so the user can deposit and re-check.
+  const persistentReject =
+    user?.rejectReason === 'low_balance' || user?.rejectReason === 'balance_dropped';
   useEffect(() => {
-    if (user?.status !== 'rejected' || regStep === 'enterId') return;
+    if (user?.status !== 'rejected' || regStep === 'enterId' || persistentReject) return;
     const t = setTimeout(() => {
       api.resetRegistration().then(setUser).catch(() => {});
     }, 7000);
     return () => clearTimeout(t);
-  }, [user?.status, regStep, setUser]);
+  }, [user?.status, regStep, persistentReject, setUser]);
 
   // Leaving the Signals tab (this screen unmounts) while rejected also returns
-  // the user to the normal view. statusRef keeps the latest status for cleanup.
+  // the user to the normal view — but not for the persistent low-balance cards.
   statusRef.current = user?.status;
+  const reasonRef = useRef(user?.rejectReason);
+  reasonRef.current = user?.rejectReason;
   useEffect(() => {
     return () => {
-      if (statusRef.current === 'rejected') {
+      const persistent =
+        reasonRef.current === 'low_balance' || reasonRef.current === 'balance_dropped';
+      if (statusRef.current === 'rejected' && !persistent) {
         api.resetRegistration().then(setUser).catch(() => {});
       }
     };
@@ -120,6 +127,8 @@ export default function SignalsScreen() {
       }, 2900);
     } catch {
       setGenerating(false);
+      // Could be a balance-revoke (403) — refresh so the low-balance card shows.
+      refresh();
     }
   }
 
@@ -173,6 +182,8 @@ export default function SignalsScreen() {
             pocketOptionId={user.pocketOptionId}
             rejectReason={user.rejectReason}
             refUrl={config.pocketOptionRefUrl}
+            minBalance={config.accessMinBalance}
+            revokeBalance={config.revokeBalance}
             onOpenModal={() => setModalOpen(true)}
             onEnterIdLink={() => setRegStep('enterId')}
             onBackToStep1={() => setRegStep('step1')}

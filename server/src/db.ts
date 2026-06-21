@@ -58,6 +58,20 @@ db.exec(`
     outcome     TEXT,
     created_at  INTEGER NOT NULL
   );
+
+  -- Meta ad click attribution: the Free landing page POSTs the ad-click ids
+  -- (fbc/fbp/fbclid) and gets back a short token, passed through Telegram as
+  -- ?startapp=mf_<token>. auth.ts reads it on first visit to tie fbc to the user.
+  CREATE TABLE IF NOT EXISTS click_attribution (
+    token       TEXT PRIMARY KEY,
+    fbc         TEXT,
+    fbp         TEXT,
+    fbclid      TEXT,
+    variant     TEXT,
+    ua          TEXT,
+    ip          TEXT,
+    created_at  INTEGER NOT NULL
+  );
 `);
 
 // Migration: why a verify was rejected ('not_found' | 'duplicate'). Wrapped in
@@ -66,6 +80,16 @@ try {
   db.exec(`ALTER TABLE users ADD COLUMN verify_reject_reason TEXT`);
 } catch {
   /* column already present */
+}
+
+// Migration: Meta ad-click attribution copied onto the user at first visit
+// (the fbc/fbp the server later replays to Meta's Conversions API on verify/deposit).
+for (const col of ['attrib_fbc TEXT', 'attrib_fbp TEXT', 'attrib_source TEXT']) {
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN ${col}`);
+  } catch {
+    /* column already present */
+  }
 }
 
 export interface UserRow {
@@ -79,7 +103,21 @@ export interface UserRow {
   ref_code: string;
   referred_by: string | null;
   verify_started_at: number | null;
-  verify_reject_reason: 'not_found' | 'duplicate' | null;
+  verify_reject_reason: 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped' | null;
+  attrib_fbc: string | null;
+  attrib_fbp: string | null;
+  attrib_source: string | null;
+  created_at: number;
+}
+
+export interface ClickAttributionRow {
+  token: string;
+  fbc: string | null;
+  fbp: string | null;
+  fbclid: string | null;
+  variant: string | null;
+  ua: string | null;
+  ip: string | null;
   created_at: number;
 }
 

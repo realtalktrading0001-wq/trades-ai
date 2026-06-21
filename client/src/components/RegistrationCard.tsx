@@ -10,6 +10,8 @@ interface Props {
   pocketOptionId: string | null;
   rejectReason: RejectReason | null;
   refUrl: string;
+  minBalance: number;
+  revokeBalance: number;
   onOpenModal: () => void;
   onEnterIdLink: () => void;
   onBackToStep1: () => void;
@@ -23,6 +25,8 @@ export default function RegistrationCard({
   pocketOptionId,
   rejectReason,
   refUrl,
+  minBalance,
+  revokeBalance,
   onOpenModal,
   onEnterIdLink,
   onBackToStep1,
@@ -72,6 +76,70 @@ export default function RegistrationCard({
           className="btn-ghost mt-4 w-full py-2.5"
         >
           <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> {t('reg.tapRefresh')}
+        </button>
+      </div>
+    );
+  }
+
+  // ---- Registered under our link, but balance too low to UNLOCK (green) ----
+  if (status === 'rejected' && rejectReason === 'low_balance' && regStep !== 'enterId') {
+    return (
+      <div className="card border-success/30 bg-success/5 p-5">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success/20 text-success">
+            <CheckIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="font-bold text-white">{t('reg.lowBalTitle')}</div>
+            <div className="mt-1 text-sm text-slate-300">{t('reg.lowBalText', { min: minBalance })}</div>
+          </div>
+        </div>
+        <button onClick={() => openExternal(refUrl)} className="btn-cyan mt-4 w-full py-3 animate-pulse-glow">
+          {t('reg.depositCta')}
+        </button>
+        <button
+          onClick={async () => {
+            setBusy(true);
+            await onRefresh();
+            setBusy(false);
+          }}
+          disabled={busy}
+          className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-electric"
+        >
+          <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> {t('reg.depositedCheck')}
+        </button>
+      </div>
+    );
+  }
+
+  // ---- Was verified, but balance dropped below the floor — access paused (amber) ----
+  if (status === 'rejected' && rejectReason === 'balance_dropped' && regStep !== 'enterId') {
+    return (
+      <div className="card border-amber/30 bg-amber/5 p-5">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber/15 text-amber">
+            <WarningIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="font-bold text-white">{t('reg.dropTitle')}</div>
+            <div className="mt-1 text-sm text-slate-300">
+              {t('reg.dropText', { floor: revokeBalance, min: minBalance })}
+            </div>
+          </div>
+        </div>
+        <button onClick={() => openExternal(refUrl)} className="btn-cyan mt-4 w-full py-3 animate-pulse-glow">
+          {t('reg.depositCta')}
+        </button>
+        <button
+          onClick={async () => {
+            setBusy(true);
+            await onRefresh();
+            setBusy(false);
+          }}
+          disabled={busy}
+          className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-electric"
+        >
+          <RefreshIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> {t('reg.depositedCheck')}
         </button>
       </div>
     );

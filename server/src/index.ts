@@ -2,11 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
-import { buildUserState, runVerification } from './state.js';
+import { buildUserState, runVerification, ACCESS_MIN_BALANCE, REVOKE_BALANCE } from './state.js';
 
 const app = express();
 app.use(cors());
@@ -138,18 +139,52 @@ app.get('/api/config', (_req, res) => {
       'UTC-8 (Los Angeles)',
     ],
     languages: ['English', 'हिन्दी', 'Español', 'Português', 'Русский', 'العربية'],
+    accessMinBalance: ACCESS_MIN_BALANCE,
+    revokeBalance: REVOKE_BALANCE,
   });
+});
+
+// Meta ad-click attribution (no auth): the Free landing page POSTs the ad-click
+// ids before the user has ever opened the Mini App. We store them under a short
+// token and return it; the page routes its CTAs to ?startapp=mf_<token>, which
+// auth.ts later ties to the user so the server can fire Conversions API events.
+// (Global cors() above already allows the cross-origin POST from the landing host.)
+app.post('/api/track/click', (req, res) => {
+  const { fbc, fbp, fbclid, variant } = req.body ?? {};
+  if (!fbc && !fbp) {
+    res.status(400).json({ error: 'no click identifiers' });
+    return;
+  }
+  const token = crypto.randomBytes(12).toString('base64url'); // ~16 chars, [A-Za-z0-9_-]
+  db.prepare(
+    `INSERT INTO click_attribution (token, fbc, fbp, fbclid, variant, ua, ip, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    token,
+    fbc ? String(fbc) : null,
+    fbp ? String(fbp) : null,
+    fbclid ? String(fbclid) : null,
+    variant ? String(variant) : null,
+    req.header('user-agent') ?? null,
+    (req.header('x-forwarded-for') ?? req.ip) ?? null,
+    Date.now()
+  );
+  res.json({ token });
 });
 
 // ---- Everything below requires a (real or dev-mock) Telegram user -----------
 app.use('/api', authMiddleware);
 
-app.post('/api/auth', (req, res) => {
-  res.json(buildUserState(req.user));
+app.post('/api/auth', async (req, res) => {
+  // Re-check on open so balance changes are reflected (verified→balance_dropped,
+  // or low_balance→verified once topped up).
+  const user = await runVerification(req.user);
+  res.json(buildUserState(user));
 });
 
-app.get('/api/me', (req, res) => {
-  res.json(buildUserState(req.user));
+app.get('/api/me', async (req, res) => {
+  const user = await runVerification(req.user);
+  res.json(buildUserState(user));
 });
 
 // Registration: submit PocketOption ID -> look it up against our affiliate now.
@@ -200,23 +235,41 @@ app.post('/api/registration/have-account', (req, res) => {
   res.json(buildUserState(req.user));
 });
 
-// Clear a transient 'rejected'/'verifying' state back to a clean 'unregistered'
-// view (used to auto-dismiss the rejection card). Never touches a verified user.
+// Clear a transient 'rejected' state back to a clean 'unregistered' view (used to
+// auto-dismiss the rejection card). Only clears the transient red cards
+// (not-under-our-link / duplicate) — the low-balance cards must persist so the
+// user keeps seeing "deposit funds". Never touches a verified user.
 app.post('/api/registration/reset', (req, res) => {
   db.prepare(
     `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
        pocket_option_id = NULL, verify_started_at = NULL, verify_reject_reason = NULL
-     WHERE tg_id = ? AND status = 'rejected'`
+     WHERE tg_id = ? AND status = 'rejected'
+       AND (verify_reject_reason IS NULL OR verify_reject_reason IN ('not_found','duplicate'))`
+  ).run(req.user.tg_id);
+  const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+  res.json(buildUserState(fresh));
+});
+
+// Log out: disconnect the linked PocketOption ID so the user can add a new one
+// (Telegram users have no session to destroy — this resets them to 'unregistered').
+app.post('/api/registration/logout', (req, res) => {
+  db.prepare(
+    `UPDATE users SET status = 'unregistered', subscription = 'Not registered',
+       pocket_option_id = NULL, verify_started_at = NULL, verify_reject_reason = NULL
+     WHERE tg_id = ?`
   ).run(req.user.tg_id);
   const fresh = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
   res.json(buildUserState(fresh));
 });
 
 // Generate a signal (verified users only)
-app.post('/api/signals/generate', (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+app.post('/api/signals/generate', async (req, res) => {
+  let user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(req.user.tg_id) as unknown as UserRow;
+  // Re-check live balance before serving a signal; a drop below the floor
+  // revokes access here so the "low balance" card shows instead of a signal.
+  if (user.status === 'verified') user = await runVerification(user);
   if (user.status !== 'verified') {
-    res.status(403).json({ error: 'not_verified' });
+    res.status(403).json({ error: 'not_verified', user: buildUserState(user) });
     return;
   }
   const { pair, expiration } = req.body ?? {};

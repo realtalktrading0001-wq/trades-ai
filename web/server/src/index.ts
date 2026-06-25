@@ -450,7 +450,17 @@ function getEndOfDay(): number {
 // the client runs on Vite and this block is skipped (no client/dist yet).
 const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
 if (existsSync(clientDist)) {
-  app.use(express.static(clientDist));
+  app.use(
+    express.static(clientDist, {
+      setHeaders: (res, filePath) => {
+        // The service worker and manifest must not be long-cached, or PWA updates
+        // won't reach already-installed users. Everything else uses Express defaults.
+        if (/(?:sw\.js|manifest\.webmanifest)$/.test(filePath)) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    })
+  );
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       res.status(404).json({ error: 'not_found' });

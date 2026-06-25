@@ -32,6 +32,13 @@ const en: Dict = {
   'nav.assistant': 'AI Assistant',
   'nav.support': 'Support',
 
+  // install / PWA
+  'install.title': 'Install TRADES AI',
+  'install.subtitle': 'Add the app to your home screen for instant access.',
+  'install.cta': 'Install app',
+  'install.ios': 'Tap the Share button, then “Add to Home Screen”.',
+  'install.dismiss': 'Dismiss',
+
   // onboarding
   'ob.next': 'Next ›',
   'ob.back': '‹ Back',

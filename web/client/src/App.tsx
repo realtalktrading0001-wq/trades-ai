@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from './state/AppContext';
 import BottomNav from './components/BottomNav';
+import InstallPrompt from './components/InstallPrompt';
 import OnboardingCarousel from './components/OnboardingCarousel';
 import LoginScreen from './screens/LoginScreen';
 import SignalsScreen from './screens/SignalsScreen';
@@ -51,6 +52,7 @@ export default function App() {
   return (
     <div className="min-h-screen pb-24">
       <main className="mx-auto max-w-md px-4 py-3">
+        <InstallPrompt />
         {tab === 'signals' && <SignalsScreen />}
         {tab === 'profile' && <ProfileScreen />}
         {tab === 'referrals' && <ReferralsScreen />}

@@ -68,6 +68,24 @@ body {
   color: var(--app-strong) !important;
 }
 
+/* Charcoal is a dark secondary button in BOTH themes (Copy, Log out, onboarding Back).
+   The slate remap above would darken its label/icon into the dark fill — keep it light. */
+[data-theme='light'] .btn-charcoal,
+[data-theme='light'] .btn-charcoal * {
+  color: #e6edf7 !important;
+}
+
+/* Leaderboard rows are dark pills (like the giveaway/countdown pills on the same screen).
+   In light mode the slate/muted remaps would darken the rank + invite count into the pill,
+   so deepen the fill and force those two labels light (the cyan prize keeps its own color). */
+[data-theme='light'] .lb-row {
+  background: rgba(7, 15, 30, 0.88);
+}
+[data-theme='light'] .lb-row .text-slate-100,
+[data-theme='light'] .lb-row .text-muted {
+  color: #e2e8f0 !important;
+}
+
 /* Hide scrollbars but keep scrolling */
 ::-webkit-scrollbar {
   width: 0;

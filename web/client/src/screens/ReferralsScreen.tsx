@@ -99,7 +99,7 @@ export default function ReferralsScreen() {
               <li
                 key={r.rank}
                 className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                  r.you ? 'bg-cyan/15 border border-cyan/40' : 'bg-midnight-deep/60'
+                  r.you ? 'bg-cyan/15 border border-cyan/40' : 'bg-midnight-deep/60 lb-row'
                 }`}
               >
                 <span className="font-semibold text-slate-100">

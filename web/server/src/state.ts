@@ -16,6 +16,32 @@ const lastCheck = new Map<string, number>();
 const CHECK_INTERVAL_MS = 1500;
 const VERIFIED_RECHECK_MS = 30000;
 
+// Demo allowlist — these accounts are auto-verified (every feature unlocked)
+// WITHOUT registering on PocketOption or depositing. Used only for recording
+// ad/demo videos and testing. Set DEMO_EMAILS to a comma/space-separated list
+// of login emails (the web build identifies a user by their login email).
+// Real users are completely unaffected.
+const DEMO_EMAILS = new Set(
+  (process.env.DEMO_EMAILS ?? '')
+    .split(/[\s,]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+/** Is this user on the demo allowlist (auto-unlocked for video/testing)? */
+export function isDemoUser(user: UserRow): boolean {
+  return !!user.email && DEMO_EMAILS.has(user.email.toLowerCase());
+}
+
+/** Force a demo account to 'verified' (no PocketOption/balance check). Idempotent. */
+function markDemoVerified(user: UserRow): UserRow {
+  if (user.status === 'verified') return user;
+  db.prepare(
+    `UPDATE users SET status = 'verified', subscription = 'Active', verify_reject_reason = NULL WHERE tg_id = ?`
+  ).run(user.tg_id);
+  return db.prepare('SELECT * FROM users WHERE tg_id = ?').get(user.tg_id) as unknown as UserRow;
+}
+
 type RejectReason = 'not_found' | 'duplicate' | 'low_balance' | 'balance_dropped';
 
 /** Move a user to 'rejected' with a reason (and clear any active subscription). */
@@ -75,6 +101,9 @@ function simulateVerify(user: UserRow): UserRow {
  * Called from the registration/status/signal endpoints.
  */
 export async function runVerification(user: UserRow): Promise<UserRow> {
+  // Demo allowlist: unconditionally verified, skipping the PocketOption + balance
+  // gate entirely (and never revoked). Every endpoint funnels through here.
+  if (isDemoUser(user)) return markDemoVerified(user);
   if (!user.pocket_option_id) return user;
   if (!PO_CONFIGURED) return simulateVerify(user);
 

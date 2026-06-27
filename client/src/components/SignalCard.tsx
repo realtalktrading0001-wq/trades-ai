@@ -121,22 +121,23 @@ export default function SignalCard({ signal, onTake, onSkip }: Props) {
         </div>
       </Box>
 
-      {/* Recommendation */}
-      <div
-        className="flex gap-2 rounded-[12px] border px-3.5 py-1.5"
-        style={{
-          background: rec.tone === 'ok' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-          borderColor: rec.tone === 'ok' ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)',
-        }}
-      >
-        <WarningIcon className={`mt-0.5 h-4 w-4 shrink-0 ${rec.tone === 'ok' ? 'text-success' : 'text-amber'}`} />
-        <div className="leading-snug">
-          <div className="text-[12.5px] font-bold" style={{ color: 'var(--app-strong)' }}>
-            {t('card.recommendation')}
+      {/* Recommendation — only shown for weak/moderate trends, as a caution.
+          Strong trends are self-evidently good, so we hide the box to keep the
+          card clean and let the Direction stay the clear headline. */}
+      {rec.tone === 'warn' && (
+        <div
+          className="flex gap-2 rounded-[12px] border px-3.5 py-1.5"
+          style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.3)' }}
+        >
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber" />
+          <div className="leading-snug">
+            <div className="text-[12.5px] font-bold" style={{ color: 'var(--app-strong)' }}>
+              {t('card.recommendation')}
+            </div>
+            <div className="text-[12px] text-muted">{t(rec.key)}</div>
           </div>
-          <div className="text-[12px] text-muted">{t(rec.key)}</div>
         </div>
-      </div>
+      )}
 
       {/* Direction — the headline of the card, made large to draw attention */}
       <div

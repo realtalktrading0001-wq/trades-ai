@@ -311,11 +311,11 @@ app.post('/api/signals/generate', async (req, res) => {
   const usePair = CURRENCY_PAIRS.includes(pair) ? pair : CURRENCY_PAIRS[0];
   const useExp = EXPIRATIONS.includes(expiration) ? expiration : EXPIRATIONS[3];
   const direction: 'UP' | 'DOWN' = Math.random() > 0.5 ? 'UP' : 'DOWN';
-  // Bias trend strength toward "strong": ~73% of signals land in a healthy
+  // Bias trend strength toward "strong": ~90% of signals land in a healthy
   // 70–98% band (favorable entries), the rest in a weaker 35–68% band. Keeps the
   // app feeling actionable instead of telling users to skip most of the time.
   const trendStrength =
-    Math.random() < 0.73
+    Math.random() < 0.9
       ? 70 + Math.floor(Math.random() * 29) // 70–98 (strong)
       : 35 + Math.floor(Math.random() * 34); // 35–68 (weak/moderate)
   const accuracy = 72 + Math.floor(Math.random() * 22); // 72–93%

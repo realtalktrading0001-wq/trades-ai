@@ -16,7 +16,7 @@ import {
   verifyLoginCode,
 } from './auth.js';
 import { sendLoginCode, EMAIL_CONFIGURED } from './email.js';
-import { buildUserState, runVerification, ACCESS_MIN_BALANCE, REVOKE_BALANCE } from './state.js';
+import { buildUserState, runVerification, isDemoUser, ACCESS_MIN_BALANCE, REVOKE_BALANCE } from './state.js';
 
 const app = express();
 app.use(cors());
@@ -311,11 +311,12 @@ app.post('/api/signals/generate', async (req, res) => {
   const usePair = CURRENCY_PAIRS.includes(pair) ? pair : CURRENCY_PAIRS[0];
   const useExp = EXPIRATIONS.includes(expiration) ? expiration : EXPIRATIONS[3];
   const direction: 'UP' | 'DOWN' = Math.random() > 0.5 ? 'UP' : 'DOWN';
-  // Bias trend strength toward "strong": ~90% of signals land in a healthy
-  // 70–98% band (favorable entries), the rest in a weaker 35–68% band. Keeps the
-  // app feeling actionable instead of telling users to skip most of the time.
+  // Bias trend strength toward "strong" (70–98% band). Demo accounts (ad videos)
+  // get an extra-clean ~95% strong rate; normal users get ~73% so the app still
+  // feels realistic. The rest fall in a weaker 35–68% band.
+  const strongChance = isDemoUser(user) ? 0.95 : 0.73;
   const trendStrength =
-    Math.random() < 0.9
+    Math.random() < strongChance
       ? 70 + Math.floor(Math.random() * 29) // 70–98 (strong)
       : 35 + Math.floor(Math.random() * 34); // 35–68 (weak/moderate)
   const accuracy = 72 + Math.floor(Math.random() * 22); // 72–93%

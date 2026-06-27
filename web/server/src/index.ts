@@ -311,7 +311,13 @@ app.post('/api/signals/generate', async (req, res) => {
   const usePair = CURRENCY_PAIRS.includes(pair) ? pair : CURRENCY_PAIRS[0];
   const useExp = EXPIRATIONS.includes(expiration) ? expiration : EXPIRATIONS[3];
   const direction: 'UP' | 'DOWN' = Math.random() > 0.5 ? 'UP' : 'DOWN';
-  const trendStrength = 1 + Math.floor(Math.random() * 100); // 1–100%
+  // Bias trend strength toward "strong": ~73% of signals land in a healthy
+  // 70–98% band (favorable entries), the rest in a weaker 35–68% band. Keeps the
+  // app feeling actionable instead of telling users to skip most of the time.
+  const trendStrength =
+    Math.random() < 0.73
+      ? 70 + Math.floor(Math.random() * 29) // 70–98 (strong)
+      : 35 + Math.floor(Math.random() * 34); // 35–68 (weak/moderate)
   const accuracy = 72 + Math.floor(Math.random() * 22); // 72–93%
   const trendBias: 'Bullish' | 'Bearish' | 'Neutral' =
     trendStrength < 40 ? 'Neutral' : direction === 'UP' ? 'Bullish' : 'Bearish';
@@ -428,15 +434,46 @@ app.get('/api/support/faq', (_req, res) => {
 });
 
 function stubbedAssistantReply(message: string): string {
-  const m = message.toLowerCase();
-  if (!m) return 'Hi! I am your Trades AI assistant. Ask me about pairs, timeframes, or strategy. 📈';
-  if (m.includes('eur') || m.includes('pair'))
-    return 'EUR/USD-OTC is showing a strong intraday trend. On a 1–3 min expiry, wait for a pullback to the trend line before entering. ⚡';
-  if (m.includes('time') || m.includes('expir'))
-    return 'For beginners, 1–3 minute expirations are the sweet spot — long enough to ride a trend, short enough to stay disciplined. ⏱️';
-  if (m.includes('risk') || m.includes('manage'))
+  const m = message.toLowerCase().trim();
+  if (!m)
+    return 'Hi! I am your Trades AI assistant. Ask me about pairs, timeframes, risk, deposits, or how to unlock signals. 📈';
+
+  // If the user is asking several things at once, hand them to live support so a
+  // human can help properly instead of getting one partial canned answer.
+  const questionCount = (m.match(/\?/g) || []).length;
+  const manyTopics = /(\band\b|,|;|also|plus).*(\?|\bhow\b|\bwhat\b|\bwhy\b|\bcan\b)/.test(m);
+  if (questionCount >= 2 || (questionCount >= 1 && manyTopics)) {
+    return `That's a few questions at once 🙌 For the fastest help, message our support team on Telegram at @${SUPPORT_HANDLE} — they're available 24x7 and will walk you through everything step by step. 💬`;
+  }
+
+  if (m.includes('eur') || m.includes('pair') || m.includes('asset') || m.includes('currency'))
+    return 'EUR/USD-OTC is showing a strong intraday trend. On a 1–3 min expiry, wait for a pullback to the trend line before entering. OTC pairs trade 24/7, so they are great on weekends. ⚡';
+  if (m.includes('time') || m.includes('expir') || m.includes('timeframe') || m.includes('minute'))
+    return 'For beginners, 1–3 minute expirations are the sweet spot — long enough to ride a trend, short enough to stay disciplined. Match the expiry to your chart timeframe. ⏱️';
+  if (m.includes('risk') || m.includes('manage') || m.includes('lose') || m.includes('loss'))
     return 'Risk no more than 2–5% of your balance per trade, and stop after 3 losses in a row. Consistency beats intensity. 🛡️';
-  return 'Got it. Based on current market conditions I would wait for a confirmed signal before entering. Tap "Get Signal" on the Signals tab for a live read. 🤖';
+  if (m.includes('martingale') || m.includes('double'))
+    return 'Martingale (doubling after a loss) is high-risk and can drain an account fast. I recommend a fixed stake of 2–5% per trade instead. 🧯';
+  if (m.includes('deposit') || m.includes('fund') || m.includes('add money') || m.includes('top up'))
+    return 'You can deposit inside your PocketOption account (the Deposit button, top right). A balance of at least $15 unlocks signals here. Cards, e-wallets and crypto are supported. 💳';
+  if (m.includes('withdraw') || m.includes('payout') || m.includes('cash out'))
+    return 'Withdrawals are handled by PocketOption from the Withdrawal page in your account — usually the same method you deposited with, processed within 1–3 days. 🏦';
+  if (m.includes('accuracy') || m.includes('winrate') || m.includes('accurate') || m.includes('win rate'))
+    return 'Our AI reports 90%+ accuracy on strong trends. No signal is guaranteed — favor the higher trend-strength signals and manage your risk. 🎯';
+  if (m.includes('unlock') || m.includes('verify') || m.includes('register') || m.includes('access'))
+    return 'To unlock signals: register a PocketOption account through our link, deposit at least $15, then submit your PocketOption ID. Verification is automatic and takes a few seconds. 🔓';
+  if (m.includes('refer') || m.includes('invite') || m.includes('friend'))
+    return 'Share your invite link from the Referrals tab. Friends who register and deposit $15+ count as approved, and the top referrers each day win cash prizes. 🎁';
+  if (m.includes('signal') || m.includes('trade') || m.includes('how') || m.includes('start'))
+    return 'Pick a pair and an expiry, then tap "Get Signal". When trend strength is high and the direction is clear, take the trade before it expires. 📊';
+  if (m.includes('hi') || m.includes('hello') || m.includes('hey'))
+    return 'Hey! 👋 I can help with pairs, timeframes, risk, deposits, and unlocking signals. What would you like to know?';
+  if (m.includes('support') || m.includes('contact') || m.includes('human') || m.includes('agent'))
+    return `Our support team is on Telegram at @${SUPPORT_HANDLE}, available 24x7. They can help with your account, deposits, verification — anything at all. 💬`;
+  if (m.includes('thank'))
+    return 'You are welcome! 🙌 Tap "Get Signal" whenever you are ready for a live read.';
+
+  return `Good question. Based on current market conditions I would wait for a confirmed signal before entering — tap "Get Signal" on the Signals tab for a live read. For anything more detailed, our 24x7 support team is on Telegram at @${SUPPORT_HANDLE}. 🤖`;
 }
 
 // Next UTC midnight — the daily giveaway countdown target (resets every day).

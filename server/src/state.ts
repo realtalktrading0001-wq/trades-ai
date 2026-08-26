@@ -6,12 +6,17 @@ const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
 const POCKETOPTION_REF_URL =
   process.env.POCKETOPTION_REF_URL ?? 'https://pocketoption.com/?ref=YOUR_REF_CODE';
 
-// Per-user affiliate link, tagged with sub_id=<tg_id> so PocketOption's S2S
-// postback (see index.ts POCKETOPTION_POSTBACK route) can echo it back on
-// registration/FTD and we can attribute the event to the right user.
+// Per-user affiliate link, tagged with click_id=<tg_id> — PocketOption's own
+// "smart link" tracking param (confirmed via their Postbacks > LINK PREVIEW:
+// https://u3.shortink.io/smart/<code>?click_id={click_id}). They echo it back
+// as the {click_id} macro on the S2S postback (see index.ts POCKETOPTION_POSTBACK
+// route), which is how we attribute a registration/FTD event to the right user.
+// POCKETOPTION_REF_URL must be the bare smart-link base (no query string of its
+// own) for this to work — the old utm-tagged /register?... link has no click_id
+// slot at all, so PocketOption has nothing to echo back.
 function refUrlFor(tgId: string): string {
   const sep = POCKETOPTION_REF_URL.includes('?') ? '&' : '?';
-  return `${POCKETOPTION_REF_URL}${sep}sub_id=${encodeURIComponent(tgId)}`;
+  return `${POCKETOPTION_REF_URL}${sep}click_id=${encodeURIComponent(tgId)}`;
 }
 
 // Live-balance access gate (registered under our link is necessary but not

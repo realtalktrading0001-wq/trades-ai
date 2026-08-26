@@ -29,6 +29,7 @@ export interface UserState {
   language: string;
   refCode: string;
   inviteLink: string;
+  pocketOptionRefUrl: string;
   stats: { total: number; taken: number; skipped: number };
 }
 

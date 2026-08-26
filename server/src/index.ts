@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { db, type UserRow, type StatsRow } from './db.js';
 import { authMiddleware } from './auth.js';
 import { buildUserState, runVerification, ACCESS_MIN_BALANCE, REVOKE_BALANCE } from './state.js';
+import { sendCapiEvent } from './meta-capi.js';
 import { sendBotMessage } from './telegram-bot.js';
 import {
   handleBotUpdate,
@@ -236,6 +237,98 @@ app.post('/telegram/webhook/:secret', (req, res) => {
   res.sendStatus(200); // ack immediately; process the update out of band
   void handleBotUpdate(req.body as TgUpdate);
 });
+
+// PocketOption S2S postback — real-time registration/FTD events, same pattern as
+// the Manav/Maxx trackers: a real conversion pings us directly and we replay it
+// to Meta CAPI attributed via the fbc/fbp captured on the original ad click. This
+// is additive to (not a replacement for) the polling-based verify/access flow in
+// state.ts — it only fires CAPI events faster/more reliably; it never grants or
+// revokes signal access. PocketOption calls this directly (no Telegram initData),
+// so it's guarded by a shared secret instead of authMiddleware.
+//
+// Configure in the PocketOption Partners dashboard's postback/tracking settings.
+// Our affiliate link is tagged `sub_id=<tg_id>` (state.ts refUrlFor) — point the
+// postback's sub_id/click_id macro back at that value. If PocketOption gives you
+// ONE postback URL for all goal types, use the query form with an `event` macro;
+// if it gives you a SEPARATE URL per goal, use the :kind path form instead:
+//   .../api/pocketoption/postback/registration?secret=xxx&sub_id={click_id}
+//   .../api/pocketoption/postback/ftd?secret=xxx&sub_id={click_id}&sum={sum}
+//   .../api/pocketoption/postback?secret=xxx&sub_id={click_id}&event={event}&sum={sum}
+const POCKETOPTION_POSTBACK_SECRET = process.env.POCKETOPTION_POSTBACK_SECRET ?? '';
+
+function pbParam(sources: Record<string, unknown>[], names: string[]): string | undefined {
+  for (const src of sources) {
+    for (const n of names) {
+      const v = src[n];
+      if (typeof v === 'string' && v) return v;
+      if (typeof v === 'number') return String(v);
+    }
+  }
+  return undefined;
+}
+
+function handlePocketOptionPostback(req: express.Request, res: express.Response): void {
+  if (!POCKETOPTION_POSTBACK_SECRET || req.query.secret !== POCKETOPTION_POSTBACK_SECRET) {
+    res.status(403).send('forbidden');
+    return;
+  }
+  const sources = [req.query as Record<string, unknown>, (req.body ?? {}) as Record<string, unknown>];
+
+  const tgId = pbParam(sources, ['sub_id', 'subid', 'click_id', 'clickid', 'sub1']);
+  if (!tgId) {
+    res.status(400).send('missing sub_id');
+    return;
+  }
+  const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(tgId) as unknown as UserRow | undefined;
+  if (!user) {
+    console.warn(`[po-postback] unknown tg_id in postback: ${tgId}`);
+    res.status(404).send('unknown user');
+    return;
+  }
+
+  const kindRaw = (req.params.kind || pbParam(sources, ['event', 'type', 'goal']) || '').toLowerCase();
+  const isFtd = /ftd|deposit/.test(kindRaw);
+  const isReg = /reg/.test(kindRaw);
+  if (!isFtd && !isReg) {
+    console.warn(`[po-postback] unrecognized event kind "${kindRaw}" for tg_id=${tgId}`);
+    res.status(400).send('unrecognized event (expected registration or ftd)');
+    return;
+  }
+  console.log(`[po-postback] ${isFtd ? 'FTD' : 'registration'} for tg_id=${tgId}`);
+
+  // Only ad-attributed users have anything worth replaying to Meta.
+  if (!user.attrib_fbc && !user.attrib_fbp) {
+    res.json({ ok: true, relayed: false });
+    return;
+  }
+
+  if (isFtd) {
+    const amount = Number(pbParam(sources, ['sum', 'amount', 'payout', 'deposit'])) || 0;
+    void sendCapiEvent({
+      eventName: 'Purchase',
+      eventId: `dep_${user.tg_id}`, // same id state.ts markVerified() uses -> Meta dedups whichever path fires
+      source: user.attrib_source,
+      fbc: user.attrib_fbc,
+      fbp: user.attrib_fbp,
+      externalId: user.tg_id,
+      value: amount,
+      currency: 'USD',
+    });
+  } else {
+    void sendCapiEvent({
+      eventName: 'CompleteRegistration',
+      eventId: `reg_${user.tg_id}`,
+      source: user.attrib_source,
+      fbc: user.attrib_fbc,
+      fbp: user.attrib_fbp,
+      externalId: user.tg_id,
+    });
+  }
+  res.json({ ok: true, relayed: true });
+}
+
+app.get('/api/pocketoption/postback/:kind?', handlePocketOptionPostback);
+app.post('/api/pocketoption/postback/:kind?', handlePocketOptionPostback);
 
 // ---- Everything below requires a (real or dev-mock) Telegram user -----------
 app.use('/api', authMiddleware);

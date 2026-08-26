@@ -181,7 +181,7 @@ export default function SignalsScreen() {
             regStep={regStep}
             pocketOptionId={user.pocketOptionId}
             rejectReason={user.rejectReason}
-            refUrl={config.pocketOptionRefUrl}
+            refUrl={user.pocketOptionRefUrl}
             minBalance={config.accessMinBalance}
             revokeBalance={config.revokeBalance}
             onOpenModal={() => setModalOpen(true)}

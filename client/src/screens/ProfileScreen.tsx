@@ -48,7 +48,7 @@ export default function ProfileScreen() {
         <div className="card p-5 bg-electric/10 border-electric/30 text-center">
           <p className="text-sm font-semibold text-slate-100">{t('prof.registerToGet')}</p>
           <button
-            onClick={() => openExternal(config.pocketOptionRefUrl)}
+            onClick={() => openExternal(user.pocketOptionRefUrl)}
             className="btn-primary mt-3 w-full py-3"
           >
             {t('prof.registerPO')}

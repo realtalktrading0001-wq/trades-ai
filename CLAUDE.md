@@ -56,6 +56,18 @@ The whole UI is driven by `user.status: 'unregistered' | 'verifying' | 'verified
 3. The Signals screen polls `/api/registration/status` (not `/api/me`) every ~3s while verifying;
    the `rejected` card auto-dismisses (see `POST /api/registration/reset`).
 
+**Ad-conversion tracking (Meta CAPI) is separate from the access gate above.** Real
+registrations/deposits are replayed to Meta's Conversions API (`server/src/meta-capi.ts`),
+attributed via the `attrib_fbc`/`attrib_fbp` an ad click left on the user (`click_attribution`
+table, tied on first visit in `auth.ts`). Two trigger paths feed the same stable event ids
+(`reg_<tg_id>` / `dep_<tg_id>`) so Meta dedupes whichever fires first:
+1. Polling path: `state.ts markVerified()` fires on the balance-gated verify above.
+2. Postback path: `POST/GET /api/pocketoption/postback/:kind?` (`index.ts`, guarded by
+   `POCKETOPTION_POSTBACK_SECRET`, not `authMiddleware` — PocketOption calls it directly) fires
+   in real time on PocketOption's own S2S postback, independent of the access gate. The
+   affiliate link is per-user (`state.ts refUrlFor`, tagged `sub_id=<tg_id>`) so the postback's
+   echoed sub_id/click_id maps back to a user. Same pattern as the Manav/Maxx Telegram trackers.
+
 **Live in production** (on Render, Starter plan + 1 GB disk at `/var/data`): real `BOT_TOKEN`,
 `POCKETOPTION_API_TOKEN`/`PARTNER_ID`, affiliate `POCKETOPTION_REF_URL`, and i18n are all wired.
 SQLite persists on the disk (`db.ts` uses `/var/data` when `RENDER` is set). See the memory files

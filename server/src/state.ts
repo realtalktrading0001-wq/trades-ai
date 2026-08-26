@@ -3,6 +3,16 @@ import { verifyPocketOptionId, PO_CONFIGURED, MIN_DEPOSIT_USD } from './pocketop
 import { sendCapiEvent } from './meta-capi.js';
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'tradesaipocketbot';
+const POCKETOPTION_REF_URL =
+  process.env.POCKETOPTION_REF_URL ?? 'https://pocketoption.com/?ref=YOUR_REF_CODE';
+
+// Per-user affiliate link, tagged with sub_id=<tg_id> so PocketOption's S2S
+// postback (see index.ts POCKETOPTION_POSTBACK route) can echo it back on
+// registration/FTD and we can attribute the event to the right user.
+function refUrlFor(tgId: string): string {
+  const sep = POCKETOPTION_REF_URL.includes('?') ? '&' : '?';
+  return `${POCKETOPTION_REF_URL}${sep}sub_id=${encodeURIComponent(tgId)}`;
+}
 
 // Live-balance access gate (registered under our link is necessary but not
 // sufficient): need >= ACCESS_MIN_BALANCE to UNLOCK, and access is removed only
@@ -167,6 +177,7 @@ export function buildUserState(userRow: UserRow) {
     // `startapp` opens the Mini App directly (and passes start_param) so the
     // referral is credited; `start` would only open the bot chat.
     inviteLink: `https://t.me/${BOT_USERNAME}?startapp=ref_${userRow.ref_code}`,
+    pocketOptionRefUrl: refUrlFor(userRow.tg_id),
     stats: {
       total: stats?.total ?? 0,
       taken: stats?.taken ?? 0,

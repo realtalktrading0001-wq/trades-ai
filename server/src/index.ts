@@ -260,7 +260,9 @@ function pbParam(sources: Record<string, unknown>[], names: string[]): string | 
   for (const src of sources) {
     for (const n of names) {
       const v = src[n];
-      if (typeof v === 'string' && v) return v;
+      // Ignore a macro the tracker failed to substitute — it arrives as the
+      // literal "{click_id}"/"{sumdep}" text and must never be read as a value.
+      if (typeof v === 'string' && v && !/^\{.*\}$/.test(v)) return v;
       if (typeof v === 'number') return String(v);
     }
   }
@@ -274,9 +276,13 @@ function handlePocketOptionPostback(req: express.Request, res: express.Response)
   }
   const sources = [req.query as Record<string, unknown>, (req.body ?? {}) as Record<string, unknown>];
 
-  const tgId = pbParam(sources, ['sub_id', 'subid', 'click_id', 'clickid', 'sub1']);
+  // `click_id` FIRST: PocketOption always appends the real click id under that
+  // name (it's the param our affiliate link carries), whereas a configured macro
+  // like `sub_id` can arrive as the literal unsubstituted text "{click_id}".
+  // pbParam skips such placeholders, but order still matters for correctness.
+  const tgId = pbParam(sources, ['click_id', 'clickid', 'sub_id', 'subid', 'sub1']);
   if (!tgId) {
-    res.status(400).send('missing sub_id');
+    res.status(400).send('missing click_id');
     return;
   }
   const user = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(tgId) as unknown as UserRow | undefined;

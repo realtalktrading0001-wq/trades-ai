@@ -263,7 +263,7 @@ export default function SignalsScreen() {
 
       <RegistrationModal
         open={modalOpen}
-        refUrl={config.pocketOptionRefUrl}
+        refUrl={user.pocketOptionRefUrl}
         onClose={() => setModalOpen(false)}
         onProceedToId={() => setRegStep('enterId')}
       />
